@@ -36,49 +36,63 @@ import { FirebaseError } from 'firebase/app';
         </div>
         
         <!-- Content -->
-        <div class="relative z-10">
-          <h3 class="text-5xl font-extrabold text-white mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 drop-shadow-md">Next-Gen AI Features</h3>
+        <div class="relative z-10 max-w-6xl mx-auto px-10">
+          <h3 class="text-4xl font-extrabold text-white mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 drop-shadow-md">Next-Gen AI Features</h3>
           <p class="text-white/80 max-w-2xl mx-auto mb-10">Powered by cutting-edge artificial intelligence to transform your city experience</p>
           
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-xl shadow-xl p-6 hover:border-blue-300/50 hover:shadow-blue-500/20 transition-all duration-300 flex flex-col items-center">
-              <div class="relative mb-6">
-                <div class="absolute -inset-2 bg-blue-600/30 rounded-full blur-md group-hover:bg-blue-500/40"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-blue-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-blue-300/50 hover:shadow-blue-500/20 transition-all duration-300 flex flex-col items-center">
+              <div class="relative mb-4">
+                <div class="absolute -inset-1 bg-blue-600/30 rounded-full blur-md group-hover:bg-blue-500/40"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <h4 class="text-2xl font-bold text-white mb-3 group-hover:text-blue-300 transition-colors">Smart Analytics</h4>
+              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-blue-300 transition-colors">Smart Analytics</h4>
               <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Real-time pattern detection and trend analysis to optimize city resources and services.</p>
             </div>
             
-            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-xl shadow-xl p-6 hover:border-teal-300/50 hover:shadow-teal-500/20 transition-all duration-300 flex flex-col items-center">
-              <div class="relative mb-6">
-                <div class="absolute -inset-2 bg-teal-600/30 rounded-full blur-md group-hover:bg-teal-500/40"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-teal-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-teal-300/50 hover:shadow-teal-500/20 transition-all duration-300 flex flex-col items-center">
+              <div class="relative mb-4">
+                <div class="absolute -inset-1 bg-teal-600/30 rounded-full blur-md group-hover:bg-teal-500/40"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-teal-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
               </div>
-              <h4 class="text-2xl font-bold text-white mb-3 group-hover:text-teal-300 transition-colors">Smart Routing</h4>
+              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-teal-300 transition-colors">Smart Routing</h4>
               <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Intelligently classifies and prioritizes issues to ensure rapid response and resolution.</p>
             </div>
             
-            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-xl shadow-xl p-6 hover:border-purple-300/50 hover:shadow-purple-500/20 transition-all duration-300 flex flex-col items-center">
-              <div class="relative mb-6">
-                <div class="absolute -inset-2 bg-purple-600/30 rounded-full blur-md group-hover:bg-purple-500/40"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-purple-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-purple-300/50 hover:shadow-purple-500/20 transition-all duration-300 flex flex-col items-center">
+              <div class="relative mb-4">
+                <div class="absolute -inset-1 bg-purple-600/30 rounded-full blur-md group-hover:bg-purple-500/40"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-purple-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
               </div>
-              <h4 class="text-2xl font-bold text-white mb-3 group-hover:text-purple-300 transition-colors">AI Assistant</h4>
+              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-purple-300 transition-colors">AI Assistant</h4>
               <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">24/7 intelligent virtual assistance with predictive responses to help citizens instantly.</p>
-            </div>          </div>
+            </div>
+          </div>
         </div>      </div>
 
-      <footer class="w-full bg-gray-800 text-white py-6 mt-12">
-        <div class="max-w-4xl mx-auto text-center">
-          <p>&copy; 2023 Harare City Council. All rights reserved.</p>
-          <p>Follow us on <a href="#" class="text-blue-400 hover:underline">Twitter</a>, <a href="#" class="text-blue-400 hover:underline">Facebook</a>, and <a href="#" class="text-blue-400 hover:underline">Instagram</a>.</p>
+      <footer class="w-full bg-gray-800 text-white py-6 mt-0">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+          <!-- Left Section -->
+          <div class="text-left">
+            <p class="text-lg font-bold mb-4">Contact Us</p>
+            <ul class="text-sm text-gray-300 mb-6">
+              <li><strong>Phone:</strong> +263 242 751823</li>
+              <li><strong>Email:</strong> info&#64;hararecity.gov.zw</li>
+              <li><strong>Address:</strong> Town House, Julius Nyerere Way, Harare, Zimbabwe</li>
+            </ul>
+          </div>
+
+          <!-- Right Section -->
+          <div class="text-right">
+            <p>&copy; 2025 Harare City Council. All rights reserved.</p>
+            <p>Follow us on <a href="#" class="text-blue-400 hover:underline">Twitter</a>, <a href="#" class="text-blue-400 hover:underline">Facebook</a>, and <a href="#" class="text-blue-400 hover:underline">Instagram</a>.</p>
+          </div>
         </div>
       </footer>
 
