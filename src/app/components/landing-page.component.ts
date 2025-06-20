@@ -9,8 +9,7 @@ import { FirebaseError } from 'firebase/app';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="min-h-screen bg-gradient-to-r from-blue-600 to-green-500 flex flex-col items-center justify-center">
-      <nav class="w-full bg-white bg-opacity-70 backdrop-blur-md shadow-md py-4 px-6 flex justify-between items-center fixed top-0">
+    <div class="min-h-screen bg-gradient-to-r from-blue-600 to-green-500 flex flex-col items-center justify-center">      <nav class="w-full bg-white bg-opacity-70 backdrop-blur-md shadow-md py-4 px-6 flex justify-between items-center fixed top-0 z-50">
         <div class="flex items-center">
           <img src="assets/city.png" alt="City Logo" class="h-10 w-10 mr-4">
           <h1 class="text-3xl font-bold text-gray-800">Harare City Council</h1>
@@ -18,9 +17,14 @@ import { FirebaseError } from 'firebase/app';
         <button (click)="openLoginModal()" class="px-6 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition">Get Started</button>
       </nav>
 
-      <div class="text-center mt-16">
-        <h2 class="text-5xl font-extrabold text-white mb-6">Your Voice Matters to Us</h2>
-        <p class="text-lg text-white max-w-2xl mx-auto">Empowering Harare residents to make a difference. Submit complaints, track progress, and help us improve our city together.</p>      </div>
+      <div class="text-center mt-36 pt-10">
+        <h2 class="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-red-500 to-purple-600 drop-shadow-lg mb-6">
+          Your Voice Matters to Us
+        </h2>
+        <p class="text-xl text-gray-100 max-w-3xl mx-auto leading-relaxed tracking-wide">
+          Empowering Harare residents to make a difference. Submit complaints, track progress, and help us improve our city together.
+        </p>
+      </div>
       
       <div class="mt-12 text-center relative overflow-hidden py-8">
         <!-- Modern background with subtle animations -->
@@ -69,62 +73,7 @@ import { FirebaseError } from 'firebase/app';
               <h4 class="text-2xl font-bold text-white mb-3 group-hover:text-purple-300 transition-colors">AI Assistant</h4>
               <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">24/7 intelligent virtual assistance with predictive responses to help citizens instantly.</p>
             </div>          </div>
-        </div>
-      </div>
-      
-      <div class="mt-12 text-center">
-        <h3 class="text-4xl font-bold text-white mb-4">City Council Information</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-6 hover:shadow-xl transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-4 text-blue-600 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </svg>
-            <h4 class="text-xl font-bold text-gray-800 mb-2">Contact Information</h4>
-            <ul class="text-gray-700 text-left">
-              <li class="mb-1"><strong>Main Office:</strong> +263 242 751823</li>
-              <li class="mb-1"><strong>Customer Service:</strong> +263 242 753984</li>
-              <li class="mb-1"><strong>Emergency:</strong> +263 242 788911</li>
-              <li class="mb-1"><strong>Email:</strong> info&#64;hararecity.gov.zw</li>
-              <li><strong>Hours:</strong> Mon-Fri 8:00 AM - 4:30 PM</li>
-            </ul>
-          </div>
-          
-          <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-6 hover:shadow-xl transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-4 text-green-600 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <h4 class="text-xl font-bold text-gray-800 mb-2">Locations</h4>
-            <ul class="text-gray-700 text-left">
-              <li class="mb-2">
-                <strong>Main Office:</strong><br>
-                Town House<br>
-                Julius Nyerere Way<br>
-                Harare, Zimbabwe
-              </li>
-              <li>
-                <strong>Citizen Service Center:</strong><br>
-                Corner Rotten Row & Simon Muzenda St<br>
-                Harare, Zimbabwe
-              </li>
-            </ul>
-          </div>
-          
-          <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-6 hover:shadow-xl transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-4 text-purple-600 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-            <h4 class="text-xl font-bold text-gray-800 mb-2">Key Departments</h4>
-            <ul class="text-gray-700 text-left">
-              <li class="mb-1"><strong>Water & Sanitation:</strong> +263 242 756124</li>
-              <li class="mb-1"><strong>Roads & Transport:</strong> +263 242 759673</li>
-              <li class="mb-1"><strong>Health Services:</strong> +263 242 753345</li>
-              <li class="mb-1"><strong>Housing & Land:</strong> +263 242 751098</li>
-              <li><strong>Emergency Services:</strong> +263 242 788911</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+        </div>      </div>
 
       <footer class="w-full bg-gray-800 text-white py-6 mt-12">
         <div class="max-w-4xl mx-auto text-center">
@@ -188,9 +137,6 @@ import { FirebaseError } from 'firebase/app';
           </form>
           <div class="mt-4 text-center">
             <a href="#" (click)="openLoginModal()" class="text-blue-600 hover:underline">Back to Login</a>
-          </div>
-          <div *ngIf="signUpErrorMessage" class="mt-4 text-red-600 text-center">
-            {{ signUpErrorMessage }}
           </div>
         </div>
       </div>
