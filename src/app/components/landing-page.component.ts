@@ -213,6 +213,7 @@ import { FirebaseError } from 'firebase/app';
               <select id="role" [(ngModel)]="role" name="role" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
                 <option value="generaluser">General User</option>
                 <option value="admin">Admin</option>
+                <option value="admin">Overal Admin</option>
               </select>
             </div>
             <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">Sign Up</button>
