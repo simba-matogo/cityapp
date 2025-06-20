@@ -10,9 +10,9 @@ import { FirebaseError } from 'firebase/app';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="min-h-screen bg-gradient-to-r from-blue-600 to-green-500 flex flex-col items-center justify-center">
-      <nav class="w-full bg-white shadow-md py-4 px-6 flex justify-between items-center fixed top-0">
+      <nav class="w-full bg-white bg-opacity-70 backdrop-blur-md shadow-md py-4 px-6 flex justify-between items-center fixed top-0">
         <div class="flex items-center">
-          <img src="assets/city-logo.png" alt="City Logo" class="h-10 w-10 mr-4">
+          <img src="assets/city.png" alt="City Logo" class="h-10 w-10 mr-4">
           <h1 class="text-3xl font-bold text-gray-800">Harare City Council</h1>
         </div>
         <button (click)="openLoginModal()" class="px-6 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition">Get Started</button>
@@ -20,30 +20,122 @@ import { FirebaseError } from 'firebase/app';
 
       <div class="text-center mt-16">
         <h2 class="text-5xl font-extrabold text-white mb-6">Your Voice Matters to Us</h2>
-        <p class="text-lg text-white max-w-2xl mx-auto">Empowering Harare residents to make a difference. Submit complaints, track progress, and help us improve our city together.</p>
+        <p class="text-lg text-white max-w-2xl mx-auto">Empowering Harare residents to make a difference. Submit complaints, track progress, and help us improve our city together.</p>      </div>
+      
+      <div class="mt-12 text-center relative overflow-hidden py-8">
+        <!-- Modern background with subtle animations -->
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 backdrop-blur-md"></div>
+        <div class="absolute inset-0">
+          <div class="absolute top-10 left-1/4 w-32 h-32 bg-blue-300/20 rounded-full filter blur-xl animate-pulse"></div>
+          <div class="absolute bottom-10 right-1/4 w-24 h-24 bg-purple-300/20 rounded-full filter blur-xl animate-pulse" style="animation-delay: 1s"></div>
+          <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-teal-300/20 rounded-full filter blur-xl animate-pulse" style="animation-delay: 2s"></div>
+        </div>
+        
+        <!-- Content -->
+        <div class="relative z-10">
+          <h3 class="text-5xl font-extrabold text-white mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 drop-shadow-md">Next-Gen AI Features</h3>
+          <p class="text-white/80 max-w-2xl mx-auto mb-10">Powered by cutting-edge artificial intelligence to transform your city experience</p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-xl shadow-xl p-6 hover:border-blue-300/50 hover:shadow-blue-500/20 transition-all duration-300 flex flex-col items-center">
+              <div class="relative mb-6">
+                <div class="absolute -inset-2 bg-blue-600/30 rounded-full blur-md group-hover:bg-blue-500/40"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-blue-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h4 class="text-2xl font-bold text-white mb-3 group-hover:text-blue-300 transition-colors">Smart Analytics</h4>
+              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Real-time pattern detection and trend analysis to optimize city resources and services.</p>
+            </div>
+            
+            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-xl shadow-xl p-6 hover:border-teal-300/50 hover:shadow-teal-500/20 transition-all duration-300 flex flex-col items-center">
+              <div class="relative mb-6">
+                <div class="absolute -inset-2 bg-teal-600/30 rounded-full blur-md group-hover:bg-teal-500/40"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-teal-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+              </div>
+              <h4 class="text-2xl font-bold text-white mb-3 group-hover:text-teal-300 transition-colors">Smart Routing</h4>
+              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Intelligently classifies and prioritizes issues to ensure rapid response and resolution.</p>
+            </div>
+            
+            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-xl shadow-xl p-6 hover:border-purple-300/50 hover:shadow-purple-500/20 transition-all duration-300 flex flex-col items-center">
+              <div class="relative mb-6">
+                <div class="absolute -inset-2 bg-purple-600/30 rounded-full blur-md group-hover:bg-purple-500/40"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-purple-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </div>
+              <h4 class="text-2xl font-bold text-white mb-3 group-hover:text-purple-300 transition-colors">AI Assistant</h4>
+              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">24/7 intelligent virtual assistance with predictive responses to help citizens instantly.</p>
+            </div>          </div>
+        </div>
       </div>
-
+      
       <div class="mt-12 text-center">
-        <h3 class="text-4xl font-bold text-white mb-4">AI-Powered Features</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <div class="bg-white rounded-lg shadow-lg p-6">
-            <h4 class="text-xl font-bold text-gray-800 mb-2">Feedback Analysis</h4>
-            <p class="text-gray-600">Analyze user feedback to identify trends and improve services.</p>
+        <h3 class="text-4xl font-bold text-white mb-4">City Council Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-6 hover:shadow-xl transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-4 text-blue-600 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+            <h4 class="text-xl font-bold text-gray-800 mb-2">Contact Information</h4>
+            <ul class="text-gray-700 text-left">
+              <li class="mb-1"><strong>Main Office:</strong> +263 242 751823</li>
+              <li class="mb-1"><strong>Customer Service:</strong> +263 242 753984</li>
+              <li class="mb-1"><strong>Emergency:</strong> +263 242 788911</li>
+              <li class="mb-1"><strong>Email:</strong> info&#64;hararecity.gov.zw</li>
+              <li><strong>Hours:</strong> Mon-Fri 8:00 AM - 4:30 PM</li>
+            </ul>
           </div>
-          <div class="bg-white rounded-lg shadow-lg p-6">
-            <h4 class="text-xl font-bold text-gray-800 mb-2">Complaint Classification</h4>
-            <p class="text-gray-600">Automatically classify complaints to route them to the correct department.</p>
+          
+          <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-6 hover:shadow-xl transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-4 text-green-600 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <h4 class="text-xl font-bold text-gray-800 mb-2">Locations</h4>
+            <ul class="text-gray-700 text-left">
+              <li class="mb-2">
+                <strong>Main Office:</strong><br>
+                Town House<br>
+                Julius Nyerere Way<br>
+                Harare, Zimbabwe
+              </li>
+              <li>
+                <strong>Citizen Service Center:</strong><br>
+                Corner Rotten Row & Simon Muzenda St<br>
+                Harare, Zimbabwe
+              </li>
+            </ul>
           </div>
-          <div class="bg-white rounded-lg shadow-lg p-6">
-            <h4 class="text-xl font-bold text-gray-800 mb-2">Automated Responses</h4>
-            <p class="text-gray-600">Provide instant responses to common queries using AI.</p>
+          
+          <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-6 hover:shadow-xl transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-4 text-purple-600 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <h4 class="text-xl font-bold text-gray-800 mb-2">Key Departments</h4>
+            <ul class="text-gray-700 text-left">
+              <li class="mb-1"><strong>Water & Sanitation:</strong> +263 242 756124</li>
+              <li class="mb-1"><strong>Roads & Transport:</strong> +263 242 759673</li>
+              <li class="mb-1"><strong>Health Services:</strong> +263 242 753345</li>
+              <li class="mb-1"><strong>Housing & Land:</strong> +263 242 751098</li>
+              <li><strong>Emergency Services:</strong> +263 242 788911</li>
+            </ul>
           </div>
         </div>
       </div>
 
+      <footer class="w-full bg-gray-800 text-white py-6 mt-12">
+        <div class="max-w-4xl mx-auto text-center">
+          <p>&copy; 2023 Harare City Council. All rights reserved.</p>
+          <p>Follow us on <a href="#" class="text-blue-400 hover:underline">Twitter</a>, <a href="#" class="text-blue-400 hover:underline">Facebook</a>, and <a href="#" class="text-blue-400 hover:underline">Instagram</a>.</p>
+        </div>
+      </footer>
+
       <!-- Login Modal -->
       <div *ngIf="showLoginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-lg p-8 w-96">
+        <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-8 w-96">
           <h3 class="text-2xl font-bold mb-6 text-gray-800">Login</h3>
           <form (ngSubmit)="login()">
             <div class="mb-4">
@@ -66,7 +158,7 @@ import { FirebaseError } from 'firebase/app';
 
       <!-- Sign-Up Modal -->
       <div *ngIf="showSignUpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-lg p-8 w-96">
+        <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-8 w-96">
           <h3 class="text-2xl font-bold mb-6 text-gray-800">Sign Up</h3>
           <form (ngSubmit)="signUp()">
             <div class="mb-4">
