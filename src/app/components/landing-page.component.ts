@@ -14,10 +14,13 @@ import { FirebaseError } from 'firebase/app';
           <img src="assets/city.png" alt="City Logo" class="h-10 w-10 mr-4">
           <h1 class="text-3xl font-bold text-gray-800">Harare City Council</h1>
         </div>
-        <button (click)="openLoginModal()" class="px-6 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition">Get Started</button>
+        <button (click)="openLoginModal()" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">
+          Get Started
+        </button>
       </nav>
 
-      <div class="text-center mt-36 pt-10">
+      <div class="text-center mt-36 pt-20">
+        <!-- Increased padding-top (pt-20) to add 2.5cm space between sections -->
         <h2 class="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-red-500 to-purple-600 drop-shadow-lg mb-6">
           Your Voice Matters to Us
         </h2>
@@ -36,11 +39,12 @@ import { FirebaseError } from 'firebase/app';
         </div>
         
         <!-- Content -->
-        <div class="relative z-10 max-w-6xl mx-auto px-10">
+        <div class="relative z-10 max-w-6xl mx-auto px-14">
+          <!-- Increased padding (px-14) to extend section width by 4cm, 2cm on each side -->
           <h3 class="text-4xl font-extrabold text-white mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 drop-shadow-md">Next-Gen AI Features</h3>
           <p class="text-white/80 max-w-2xl mx-auto mb-10">Powered by cutting-edge artificial intelligence to transform your city experience</p>
           
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-6 gap-6">
             <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-blue-300/50 hover:shadow-blue-500/20 transition-all duration-300 flex flex-col items-center">
               <div class="relative mb-4">
                 <div class="absolute -inset-1 bg-blue-600/30 rounded-full blur-md group-hover:bg-blue-500/40"></div>
@@ -49,7 +53,7 @@ import { FirebaseError } from 'firebase/app';
                 </svg>
               </div>
               <h4 class="text-lg font-bold text-white mb-2 group-hover:text-blue-300 transition-colors">Smart Analytics</h4>
-              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Real-time pattern detection and trend analysis to optimize city resources and services.</p>
+              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Trend analysis to optimize city resources and services.</p>
             </div>
             
             <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-teal-300/50 hover:shadow-teal-500/20 transition-all duration-300 flex flex-col items-center">
@@ -59,8 +63,8 @@ import { FirebaseError } from 'firebase/app';
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
               </div>
-              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-teal-300 transition-colors">Smart Routing</h4>
-              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Intelligently classifies and prioritizes issues to ensure rapid response and resolution.</p>
+              <h4 clsass="text-lg font-bold text-white mb-2 group-hover:text-teal-300 transition-colors">Smart Routing</h4>
+              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Classify and prioritizes issues to ensure rapid response and resolution.</p>
             </div>
             
             <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-purple-300/50 hover:shadow-purple-500/20 transition-all duration-300 flex flex-col items-center">
@@ -71,7 +75,43 @@ import { FirebaseError } from 'firebase/app';
                 </svg>
               </div>
               <h4 class="text-lg font-bold text-white mb-2 group-hover:text-purple-300 transition-colors">AI Assistant</h4>
-              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">24/7 intelligent virtual assistance with predictive responses to help citizens instantly.</p>
+              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">24/7 intelligent virtual assistance with instant predictive responses.</p>
+            </div>
+
+            <!-- New Component 1 -->
+            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-yellow-300/50 hover:shadow-yellow-500/20 transition-all duration-300 flex flex-col items-center">
+              <div class="relative mb-4">
+                <div class="absolute -inset-1 bg-yellow-600/30 rounded-full blur-md group-hover:bg-yellow-500/40"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-yellow-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
+                </svg>
+              </div>
+              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-yellow-300 transition-colors">Predictive Insights</h4>
+              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Forecast trends and make data-driven decisions.</p>
+            </div>
+
+            <!-- New Component 2 -->
+            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-red-300/50 hover:shadow-red-500/20 transition-all duration-300 flex flex-col items-center">
+              <div class="relative mb-4">
+                <div class="absolute -inset-1 bg-red-600/30 rounded-full blur-md group-hover:bg-red-500/40"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-red-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
+                </svg>
+              </div>
+              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-red-300 transition-colors">Automated Monitoring</h4>
+              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Track city metrics in real-time.</p>
+            </div>
+
+            <!-- New Component 3 -->
+            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-green-300/50 hover:shadow-green-500/20 transition-all duration-300 flex flex-col items-center">
+              <div class="relative mb-4">
+                <div class="absolute -inset-1 bg-green-600/30 rounded-full blur-md group-hover:bg-green-500/40"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
+                </svg>
+              </div>
+              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-green-300 transition-colors">Enhanced Security</h4>
+              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Detect and prevent security threats proactively.</p>
             </div>
           </div>
         </div>      </div>
