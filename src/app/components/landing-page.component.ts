@@ -138,28 +138,28 @@ import { FirebaseError } from 'firebase/app';
 
       <!-- Login Modal -->
       <div *ngIf="showLoginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-8 w-96 relative">
+        <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-4 w-80 relative">
           <button (click)="showLoginModal = false" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div class="flex justify-center mb-6">
+          <div class="flex justify-center mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
             </svg>
           </div>
-          <h3 class="text-2xl font-bold mb-6 text-gray-800 text-center"> Welcome , please login</h3>
+          <h3 class="text-2xl font-bold mb-4 text-gray-800 text-center"> Welcome , please login</h3>
           <form (ngSubmit)="login()">
-            <div class="mb-4">
+            <div class="mb-2">
               <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
               <input type="email" id="email" [(ngModel)]="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
             </div>
-            <div class="mb-4">
+            <div class="mb-2">
               <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
               <input type="password" id="password" [(ngModel)]="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
             </div>
-            <div class="mb-4">
+            <div class="mb-2">
               <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
               <select id="role" [(ngModel)]="role" name="role" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
                 <option value="generaluser">General User</option>
@@ -169,7 +169,7 @@ import { FirebaseError } from 'firebase/app';
             </div>
             <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">Login</button>
           </form>
-          <div class="mt-4 text-center">
+          <div class="mt-2 text-center">
             <a href="#" (click)="openSignUpModal()" class="text-green-600 hover:underline">Sign Up</a>
             <span class="mx-2">|</span>
             <a href="#" class="text-green-600 hover:underline">Forgot Password?</a>
@@ -179,46 +179,46 @@ import { FirebaseError } from 'firebase/app';
 
       <!-- Sign-Up Modal -->
       <div *ngIf="showSignUpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-8 w-96 relative">
+        <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-4 w-80 relative">
           <button (click)="showSignUpModal = false" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div class="flex justify-center mb-6">
+          <div class="flex justify-center mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
             </svg>
           </div>
-          <h3 class="text-2xl font-bold mb-6 text-gray-800 text-center">Sign Up</h3>
+          <h3 class="text-2xl font-bold mb-4 text-gray-800 text-center">Sign Up</h3>
           <form (ngSubmit)="signUp()">
-            <div class="mb-4">
+            <div class="mb-2">
               <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
               <input type="text" id="username" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
-            <div class="mb-4">
+            <div class="mb-2">
               <label for="surname" class="block text-sm font-medium text-gray-700">Surname</label>
               <input type="text" id="surname" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
-            <div class="mb-4">
+            <div class="mb-2">
               <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
               <input type="email" id="email" [(ngModel)]="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
             </div>
-            <div class="mb-4">
+            <div class="mb-2">
               <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
               <input type="password" id="password" [(ngModel)]="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
             </div>
-            <div class="mb-4">
+            <div class="mb-2">
               <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
               <select id="role" [(ngModel)]="role" name="role" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
                 <option value="generaluser">General User</option>
                 <option value="admin">Admin</option>
-                <option value="admin">Overal Admin</option>
+                <option value="overalladmin">Overall Admin</option>
               </select>
             </div>
             <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">Sign Up</button>
           </form>
-          <div class="mt-4 text-center">
+          <div class="mt-2 text-center">
             <a href="#" (click)="openLoginModal()" class="text-green-600 hover:underline">Back to Login</a>
           </div>
         </div>
