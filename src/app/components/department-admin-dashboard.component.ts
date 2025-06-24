@@ -1,10 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { NotificationService } from '../services/notification.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-department-admin-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="min-h-screen bg-slate-50 flex flex-col">
       <!-- Navbar -->
@@ -115,58 +118,34 @@ import { CommonModule } from '@angular/common';
             </div>
             <div class="flex flex-col gap-3">
               <!-- Complaint Cards (repeat for each complaint) -->
-              <div class="bg-slate-50 rounded p-3 flex flex-col gap-2 border border-slate-100 hover:shadow-lg transition group">
+              <div class="bg-slate-50 rounded p-3 flex flex-col gap-2 border border-slate-100 hover:shadow-lg transition group" *ngFor="let complaint of visibleComplaints">
                 <div class="flex items-center justify-between">
-                  <div class="font-semibold text-slate-700">Complaint 1</div>
-                  <span class="text-xs text-yellow-600 bg-yellow-100 rounded px-2 py-0.5">New</span>
+                  <div class="font-semibold text-slate-700">{{ complaint.title }}</div>
+                  <span class="text-xs" [ngClass]="{
+                    'text-yellow-600 bg-yellow-100': complaint.status === 'New',
+                    'text-blue-600 bg-blue-100': complaint.status === 'In Progress',
+                    'text-green-600 bg-green-100': complaint.status === 'Pending Review'
+                  }" class="rounded px-2 py-0.5">{{ complaint.status }}</span>
                 </div>
                 <div class="flex items-center gap-2">
                   <div class="w-full h-2 bg-slate-200 rounded">
-                    <div class="h-2 bg-blue-500 rounded" style="width: 20%"></div>
+                    <div class="h-2 bg-blue-500 rounded" [style.width.%]="complaint.status === 'New' ? 20 : complaint.status === 'In Progress' ? 60 : 90"></div>
                   </div>
-                  <span class="text-[10px] text-slate-400">20%</span>
+                  <span class="text-[10px] text-slate-400" *ngIf="complaint.status !== 'New'">{{ complaint.status === 'In Progress' ? '60%' : '90%' }}</span>
                 </div>
                 <div class="flex gap-2 mt-1">
-                  <button class="text-xs text-blue-600 hover:underline">Reply</button>
+                  <button class="text-xs text-blue-600 hover:underline" (click)="sendReply(complaint.id)">Reply</button>
                   <button class="text-xs text-green-600 hover:underline">Assign</button>
                   <button class="text-xs text-slate-500 hover:underline">Details</button>
                 </div>
-              </div>
-              <div class="bg-slate-50 rounded p-3 flex flex-col gap-2 border border-slate-100 hover:shadow-lg transition group">
-                <div class="flex items-center justify-between">
-                  <div class="font-semibold text-slate-700">Complaint 2</div>
-                  <span class="text-xs text-blue-600 bg-blue-100 rounded px-2 py-0.5">In Progress</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <div class="w-full h-2 bg-slate-200 rounded">
-                    <div class="h-2 bg-blue-500 rounded" style="width: 60%"></div>
-                  </div>
-                  <span class="text-[10px] text-slate-400">60%</span>
-                </div>
-                <div class="flex gap-2 mt-1">
-                  <button class="text-xs text-blue-600 hover:underline">Reply</button>
-                  <button class="text-xs text-green-600 hover:underline">Assign</button>
-                  <button class="text-xs text-slate-500 hover:underline">Details</button>
-                </div>
-              </div>
-              <div class="bg-slate-50 rounded p-3 flex flex-col gap-2 border border-slate-100 hover:shadow-lg transition group">
-                <div class="flex items-center justify-between">
-                  <div class="font-semibold text-slate-700">Complaint 3</div>
-                  <span class="text-xs text-green-600 bg-green-100 rounded px-2 py-0.5">Pending Review</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <div class="w-full h-2 bg-slate-200 rounded">
-                    <div class="h-2 bg-green-500 rounded" style="width: 90%"></div>
-                  </div>
-                  <span class="text-[10px] text-slate-400">90%</span>
-                </div>
-                <div class="flex gap-2 mt-1">
-                  <button class="text-xs text-blue-600 hover:underline">Reply</button>
-                  <button class="text-xs text-green-600 hover:underline">Assign</button>
-                  <button class="text-xs text-slate-500 hover:underline">Details</button>
+                <div class="mt-2" *ngIf="complaint.status === 'In Progress'">
+                  <textarea [(ngModel)]="replyText[complaint.id]" class="w-full p-2 text-sm rounded border border-slate-300 focus:ring-1 focus:ring-blue-500 focus:outline-none" rows="2" placeholder="Type your reply..."></textarea>
                 </div>
               </div>
             </div>
+            <button (click)="toggleComplaintsView()" class="mt-4 text-xs text-blue-600 hover:underline">
+              {{ showAllComplaints ? 'Show Less' : 'Show All' }}
+            </button>
           </div>
 
           <!-- Notifications, Announcements, Activity Feed -->
@@ -178,10 +157,11 @@ import { CommonModule } from '@angular/common';
                 <h3 class="text-base font-semibold text-slate-800">Notifications</h3>
               </summary>
               <ul class="divide-y divide-slate-100 mb-2">
-                <li class="py-2 text-xs text-slate-700">User X responded to Complaint 1</li>
-                <li class="py-2 text-xs text-slate-700">Complaint 2 marked as resolved</li>
+                <li class="py-2 text-xs text-slate-700" *ngFor="let notification of notifications">
+                  {{ notification.message }}
+                </li>
               </ul>
-              <button class="w-full py-2 sm:py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold">Send Notification</button>
+              <button class="w-full py-2 sm:py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold" (click)="postNotification()">Send Notification</button>
             </details>
             <!-- Collapsible Announcements -->
             <details open class="bg-white rounded-xl border border-slate-100 shadow p-4 sm:p-6 flex-1">
@@ -233,4 +213,61 @@ import { CommonModule } from '@angular/common';
   `,
   styles: []
 })
-export class DepartmentAdminDashboardComponent {}
+export class DepartmentAdminDashboardComponent {
+  departmentName = '';
+  complaints: any[] = [];
+  showAllComplaints = false;
+  replyText: { [id: string]: string } = {};
+  notifications: { message: string, date: string }[] = [];
+  newNotification = '';
+
+  departmentDisplayNames: { [key: string]: string } = {
+    water: 'Water & Sanitation',
+    roads: 'Roads & Infrastructure',
+    wastemanagement: 'Waste Management'
+  };
+
+  constructor(private notificationService: NotificationService, private route: ActivatedRoute) {}
+
+  ngOnInit() {
+    // Get department from route
+    this.route.paramMap.subscribe(params => {
+      const dept = params.get('department');
+      this.departmentName = dept && this.departmentDisplayNames[dept] ? this.departmentDisplayNames[dept] : (dept ? dept.charAt(0).toUpperCase() + dept.slice(1) : '');
+      // TODO: Replace with real fetch logic
+      this.complaints = [
+        { id: '1', title: 'Burst pipe', description: 'Pipe burst on Main St.', status: 'New', user: 'User A', date: new Date().toISOString(), department: 'water' },
+        { id: '2', title: 'No water', description: 'No water in area.', status: 'In Progress', user: 'User B', date: new Date().toISOString(), department: 'water' },
+        { id: '3', title: 'Pothole', description: 'Pothole on Main St.', status: 'Pending Review', user: 'User C', date: new Date().toISOString(), department: 'roads' },
+        { id: '4', title: 'Missed collection', description: 'Garbage not collected.', status: 'New', user: 'User D', date: new Date().toISOString(), department: 'wastemanagement' }
+      ].filter(c => c.department === dept);
+    });
+    this.notifications = [
+      { message: 'Water outage scheduled for tomorrow', date: new Date().toISOString() },
+      { message: 'New waste collection schedule posted', date: new Date().toISOString() }
+    ];
+  }
+
+  get visibleComplaints() {
+    return this.showAllComplaints ? this.complaints : this.complaints.slice(-2);
+  }
+
+  toggleComplaintsView() {
+    this.showAllComplaints = !this.showAllComplaints;
+  }
+
+  sendReply(complaintId: string) {
+    if (this.replyText[complaintId]) {
+      this.notificationService.showSuccess('Reply sent!');
+      this.replyText[complaintId] = '';
+    }
+  }
+
+  postNotification() {
+    if (this.newNotification.trim()) {
+      this.notifications.unshift({ message: this.newNotification, date: new Date().toISOString() });
+      this.notificationService.showSuccess('Announcement posted!');
+      this.newNotification = '';
+    }
+  }
+}

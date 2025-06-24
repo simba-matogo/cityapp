@@ -10,10 +10,12 @@ import {
   deleteDoc, 
   query, 
   where,
-  enableIndexedDbPersistence,
   disableNetwork,
   enableNetwork,
-  connectFirestoreEmulator
+  connectFirestoreEmulator,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
 } from 'firebase/firestore';
 import { environment } from '../../environments/environment';
 import { BehaviorSubject } from 'rxjs';
@@ -24,7 +26,9 @@ import { retryWithBackoff, timeoutPromise } from '../utils/retry-with-backoff';
 })
 export class FirebaseService {
   private app = initializeApp(environment.firebase);
-  private db = getFirestore(this.app);
+  private db = initializeFirestore(this.app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+  });
   
   // Connection state observable
   private _isConnected = new BehaviorSubject<boolean>(true);
@@ -38,14 +42,7 @@ export class FirebaseService {
   // Enable offline persistence
   private async setupOfflinePersistence() {
     try {
-      // Enable offline persistence
-      await enableIndexedDbPersistence(this.db).catch((err) => {
-        if (err.code === 'failed-precondition') {
-          console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-        } else if (err.code === 'unimplemented') {
-          console.warn('The current browser does not support all of the features required to enable persistence');
-        }
-      });
+      // Offline persistence is already configured during Firestore initialization
 
       // If you want to use emulators, uncomment this and add useEmulators: true to environment.ts
       // if (!environment.production && (environment as any).useEmulators) {
@@ -76,7 +73,6 @@ export class FirebaseService {
       console.error('Error enabling network:', error);
     }
   }
-
   // Get all documents from a collection with retry and timeout
   async getCollection(collectionName: string) {
     try {
@@ -96,8 +92,17 @@ export class FirebaseService {
           ...doc.data()
         }));
       }, 3);
-    } catch (error) {
-      console.error(`Error getting collection ${collectionName}:`, error);
+    } catch (error: any) {
+      // Enhanced error logging with HTTP status codes if available
+      if (error.code === 'permission-denied') {
+        console.error(`Access denied to collection ${collectionName}. Check Firestore rules.`, error);
+      } else if (error.name === 'FirebaseError' && error.code) {
+        console.error(`Firebase error accessing collection ${collectionName}: [${error.code}]`, error);
+      } else if (error.status === 400) {
+        console.error(`Bad request error accessing collection ${collectionName}. Check Firebase configuration.`, error);
+      } else {
+        console.error(`Error getting collection ${collectionName}:`, error);
+      }
       
       // If we're in offline mode and have cached data, it will still work
       // If completely disconnected with no cache, return empty array
@@ -107,8 +112,7 @@ export class FirebaseService {
 
   // Add a document to a collection with retry
   async addDocument(collectionName: string, data: any) {
-    try {
-      return await retryWithBackoff(async () => {
+    try {      return await retryWithBackoff(async () => {
         const collectionRef = collection(this.db, collectionName);
         const docRef = await timeoutPromise(
           addDoc(collectionRef, data),
@@ -116,7 +120,7 @@ export class FirebaseService {
           'Adding document timed out'
         );
         return docRef.id;
-      }, 2);
+      }, 4); // Increased retry count for better reliability
     } catch (error) {
       console.error(`Error adding document to ${collectionName}:`, error);
       throw error;

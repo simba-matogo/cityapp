@@ -1,1 +1,11 @@
-<router-outlet />
+`<router-outlet />
+<app-notifications></app-notifications>
+<style>
+  app-notification-container, .app-notification-container, .fixed.top-5.right-5.z-\[9999\] {
+    z-index: 99999 !important;
+    pointer-events: none;
+  }
+  app-notification-container * {
+    pointer-events: auto;
+  }
+</style>

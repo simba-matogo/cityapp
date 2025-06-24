@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../services/auth.service';
 import { FormsModule } from '@angular/forms';
 import { FirebaseError } from 'firebase/app';
+import { NotificationService } from '../services/notification.service';
+import { Router } from '@angular/router';
+import { setupUserRole } from '../utils/user-setup';
 
 @Component({
   selector: 'app-landing-page',
@@ -236,7 +239,7 @@ export class LandingPageComponent {
   role = 'generaluser';
   signUpErrorMessage = ''; // Add this property to store error messages
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private notificationService: NotificationService, private router: Router) {}
 
   openLoginModal() {
     this.showLoginModal = true;
@@ -246,25 +249,87 @@ export class LandingPageComponent {
   openSignUpModal() {
     this.showLoginModal = false;
     this.showSignUpModal = true;
-  }
-
-  async login() {
+  }  async login() {
+    let loadingNotificationId: string | undefined;
     try {
-      await this.authService.login(this.email, this.password);
+      loadingNotificationId = this.notificationService.info('Logging in...', 'Please wait', 0);
+      const user = await this.authService.login(this.email, this.password);
       this.showLoginModal = false;
+      if (loadingNotificationId) this.notificationService.dismiss(loadingNotificationId);
+      
+      console.log('User logged in with role:', user?.role);
+      
+      // Special case for predefined users - make sure they have the correct role in Firestore
+      await this.setupPredefinedUserRole(user.uid);
+      
+      // Redirect based on role
+      if (this.role === 'overalladmin' || user?.role === 'overalladmin') {
+        console.log('Redirecting to overall admin dashboard');
+        this.notificationService.success('Login successful', 'Welcome, Overall Admin!', 4000);
+        this.router.navigate(['/overall-admin-dashboard']);
+      } else if (this.role === 'admin' || user?.role === 'admin' || user?.role === 'departmentadmin') {
+        const dept = user.department ? user.department.toLowerCase() : this.getDepartmentFromEmail(this.email);
+        console.log(`Redirecting to department admin dashboard for ${dept}`);
+        this.notificationService.success('Login successful', `Welcome, ${dept.charAt(0).toUpperCase() + dept.slice(1)} Department Admin!`, 4000);
+        this.router.navigate([`/department-admin-dashboard/${dept}`]);
+      } else {
+        console.log('Redirecting to general user dashboard');
+        this.notificationService.success('Login successful', 'Welcome!', 4000);
+        this.router.navigate(['/general-user-dashboard']);
+      }
     } catch (error) {
+      if (loadingNotificationId) this.notificationService.dismiss(loadingNotificationId);
+      this.notificationService.error('Login Failed', (error as any)?.message || 'Unknown error', 5000);
       console.error('Login failed:', error);
     }
   }
+  
+  // Helper function to set up predefined user roles based on email
+  private async setupPredefinedUserRole(uid: string): Promise<void> {
+    // If user selected a specific role in the dropdown, set it
+    if (this.role === 'overalladmin') {
+      await setupUserRole(uid, 'overalladmin');
+      return;
+    }
+    
+    if (this.role === 'admin') {
+      const department = this.getDepartmentFromEmail(this.email);
+      await setupUserRole(uid, 'departmentadmin', department);
+      return;
+    }
+    
+    // If specific known emails, enforce their roles
+    if (this.email === 'simbarashe@harare.gov.zw' || this.email === 'overalladmin@example.com') {
+      await setupUserRole(uid, 'overalladmin');
+    } else if (this.email === 'water@harare.gov.zw') {
+      await setupUserRole(uid, 'departmentadmin', 'water');
+    } else if (this.email === 'roads@harare.gov.zw') {
+      await setupUserRole(uid, 'departmentadmin', 'roads');
+    } else if (this.email === 'waste@harare.gov.zw') {
+      await setupUserRole(uid, 'departmentadmin', 'wastemanagement');
+    }
+  }
+    // Helper to determine department from email
+  private getDepartmentFromEmail(email: string): string {
+    if (email.includes('water')) return 'water';
+    if (email.includes('road')) return 'roads';
+    if (email.includes('waste')) return 'wastemanagement';
+    return 'general';
+  }
 
   async signUp() {
+    let loadingNotificationId: string | undefined;
     try {
+      loadingNotificationId = this.notificationService.info('Creating account...', 'Please wait', 0);
       await this.authService.signUp(this.email, this.password, this.role);
       this.showSignUpModal = false;
+      if (loadingNotificationId) this.notificationService.dismiss(loadingNotificationId);
+      this.notificationService.success('Sign-up successful', 'Please log in with your new account', 5000);
     } catch (error) {
+      if (loadingNotificationId) this.notificationService.dismiss(loadingNotificationId);
       const firebaseError = error as FirebaseError;
-      console.error('Sign-up failed:', firebaseError);
       this.signUpErrorMessage = firebaseError.message || 'An unexpected error occurred during sign-up.';
+      this.notificationService.error('Sign-up Failed', this.signUpErrorMessage, 5000);
     }
   }
 }

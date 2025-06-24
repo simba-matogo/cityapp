@@ -1,10 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { NotificationService } from '../services/notification.service';
 
 @Component({
   selector: 'app-overall-admin-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 flex flex-col">
       <!-- Navbar -->
@@ -76,7 +78,7 @@ import { CommonModule } from '@angular/common';
                 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='h-5 w-5' fill='none' stroke='currentColor' stroke-width='2'><circle cx='12' cy='12' r='10'/></svg>
               </span>
               <span class="text-xs font-bold text-slate-700 flex-1 text-center">Complaints</span>
-              <span class="text-base font-extrabold text-blue-600 ml-2">120</span>
+              <span class="text-base font-extrabold text-blue-600 ml-2">{{ stats.complaints }}</span>
             </span>
           </div>
           <div class="bg-white/80 backdrop-blur rounded shadow p-2 flex items-center justify-center border border-slate-100 w-full min-w-0">
@@ -85,7 +87,7 @@ import { CommonModule } from '@angular/common';
                 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='h-5 w-5' fill='none' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M5 13l4 4L19 7'/></svg>
               </span>
               <span class="text-xs font-bold text-slate-700 flex-1 text-center">Resolved</span>
-              <span class="text-base font-extrabold text-blue-600 ml-2">98</span>
+              <span class="text-base font-extrabold text-blue-600 ml-2">{{ stats.resolved }}</span>
             </span>
           </div>
           <div class="bg-white/80 backdrop-blur rounded shadow p-2 flex items-center justify-center border border-slate-100 w-full min-w-0">
@@ -94,7 +96,7 @@ import { CommonModule } from '@angular/common';
                 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='h-5 w-5' fill='none' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'/></svg>
               </span>
               <span class="text-xs font-bold text-slate-700 flex-1 text-center">Pending</span>
-              <span class="text-base font-extrabold text-blue-600 ml-2">15</span>
+              <span class="text-base font-extrabold text-blue-600 ml-2">{{ stats.pending }}</span>
             </span>
           </div>
           <div class="bg-white/80 backdrop-blur rounded shadow p-2 flex items-center justify-center border border-slate-100 w-full min-w-0">
@@ -103,7 +105,7 @@ import { CommonModule } from '@angular/common';
                 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='h-5 w-5' fill='none' stroke='currentColor' stroke-width='2'><path stroke-linecap='round' stroke-linejoin='round' d='M12 8v4l3 3'/></svg>
               </span>
               <span class="text-xs font-bold text-slate-700 flex-1 text-center">Overdue</span>
-              <span class="text-base font-extrabold text-blue-600 ml-2">7</span>
+              <span class="text-base font-extrabold text-blue-600 ml-2">{{ stats.overdue }}</span>
             </span>
           </div>
         </div>
@@ -118,16 +120,16 @@ import { CommonModule } from '@angular/common';
             </div>
             <div class="flex flex-col gap-3">
               <!-- Complaint Cards (repeat for each complaint) -->
-              <div class="bg-slate-50/80 rounded p-3 flex flex-col gap-2 border border-slate-100 hover:shadow-lg transition group">
+              <div class="bg-slate-50/80 rounded p-3 flex flex-col gap-2 border border-slate-100 hover:shadow-lg transition group" *ngFor="let complaint of complaints">
                 <div class="flex items-center justify-between">
-                  <div class="font-semibold text-slate-700">Complaint 1</div>
-                  <span class="text-xs text-yellow-600 bg-yellow-100 rounded px-2 py-0.5">New</span>
+                  <div class="font-semibold text-slate-700">{{ complaint.title }}</div>
+                  <span class="text-xs" [ngClass]="{'text-yellow-600 bg-yellow-100': complaint.status === 'New', 'text-green-600 bg-green-100': complaint.status === 'Resolved', 'text-red-600 bg-red-100': complaint.status === 'Overdue'}" class="rounded px-2 py-0.5">{{ complaint.status }}</span>
                 </div>
                 <div class="flex items-center gap-2">
                   <div class="w-full h-2 bg-slate-200 rounded">
-                    <div class="h-2 bg-blue-500 rounded" style="width: 20%"></div>
+                    <div class="h-2 bg-blue-500 rounded" [style.width.%]="(complaint.resolutionRate || 0)"></div>
                   </div>
-                  <span class="text-[10px] text-slate-400">20%</span>
+                  <span class="text-[10px] text-slate-400">{{ complaint.resolutionRate }}%</span>
                 </div>
                 <div class="flex gap-2 mt-1 flex-wrap">
                   <button class="text-xs text-blue-600 hover:underline">Reply</button>
@@ -150,8 +152,7 @@ import { CommonModule } from '@angular/common';
                 <h3 class="text-base font-semibold text-slate-800">Departments</h3>
               </summary>
               <ul class="divide-y divide-slate-100 mb-2">
-                <li class="py-2 text-xs text-slate-700 flex justify-between items-center">Water & Sanitation <span><button class="text-xs text-blue-600 hover:underline">View</button> <button class="text-xs text-red-600 hover:underline ml-2">Delete</button></span></li>
-                <li class="py-2 text-xs text-slate-700 flex justify-between items-center">Roads <span><button class="text-xs text-blue-600 hover:underline">View</button> <button class="text-xs text-red-600 hover:underline ml-2">Delete</button></span></li>
+                <li class="py-2 text-xs text-slate-700 flex justify-between items-center" *ngFor="let department of departments"> {{ department.name }} <span><button class="text-xs text-blue-600 hover:underline">View</button> <button class="text-xs text-red-600 hover:underline ml-2" (click)="deleteDepartment(department.id)">Delete</button></span></li>
               </ul>
               <button class="w-full py-2 sm:py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold">Add Department</button>
             </details>
@@ -162,8 +163,7 @@ import { CommonModule } from '@angular/common';
                 <h3 class="text-base font-semibold text-slate-800">Users</h3>
               </summary>
               <ul class="divide-y divide-slate-100 mb-2">
-                <li class="py-2 text-xs text-slate-700 flex justify-between items-center">Admin John <span><button class="text-xs text-blue-600 hover:underline">Promote</button> <button class="text-xs text-red-600 hover:underline ml-2">Delete</button></span></li>
-                <li class="py-2 text-xs text-slate-700 flex justify-between items-center">User Jane <span><button class="text-xs text-blue-600 hover:underline">Promote</button> <button class="text-xs text-red-600 hover:underline ml-2">Delete</button></span></li>
+                <li class="py-2 text-xs text-slate-700 flex justify-between items-center" *ngFor="let user of users"> {{ user.name }} <span><button class="text-xs text-blue-600 hover:underline">Promote</button> <button class="text-xs text-red-600 hover:underline ml-2" (click)="deleteUser(user.id)">Delete</button></span></li>
               </ul>
               <button class="w-full py-2 sm:py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-semibold">Add User</button>
             </details>
@@ -174,10 +174,15 @@ import { CommonModule } from '@angular/common';
                 <h3 class="text-base font-semibold text-slate-800">Announcements</h3>
               </summary>
               <ul class="divide-y divide-slate-100 mb-2">
-                <li class="py-2 text-xs text-slate-700">System maintenance scheduled for Sunday</li>
-                <li class="py-2 text-xs text-slate-700">New department added: Parks</li>
+                <li class="py-2 text-xs text-slate-700" *ngFor="let announcement of announcements">
+                  {{ announcement.message }}
+                  <span class="text-[10px] text-slate-400">{{ announcement.date | date:'short' }}</span>
+                </li>
               </ul>
-              <button class="w-full py-2 sm:py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-semibold">Post Announcement</button>
+              <div class="flex gap-2 mt-2">
+                <input [(ngModel)]="newAnnouncement" type="text" class="flex-1 px-3 py-2 text-xs rounded border border-slate-300 focus:ring-1 focus:ring-blue-500 focus:outline-none" placeholder="New announcement...">
+                <button class="px-3 py-2 bg-purple-600 text-white rounded text-xs font-semibold hover:bg-purple-700 transition" (click)="postAnnouncement()">Post</button>
+              </div>
             </details>
           </div>
         </div>
@@ -191,10 +196,7 @@ import { CommonModule } from '@angular/common';
               <h3 class="text-base font-semibold text-slate-800">AI Insights</h3>
             </div>
             <ul class="list-disc pl-5 text-xs text-slate-700">
-              <li>Customer Feedback Analysis</li>
-              <li>Complaint Resolution Assistant</li>
-              <li>Quality Control Monitoring</li>
-              <li>AI-powered auto-replies</li>
+              <li *ngFor="let insight of aiInsights">{{ insight }}</li>
             </ul>
             <button class="mt-2 w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold">View AI Insights</button>
           </div>
@@ -251,4 +253,82 @@ import { CommonModule } from '@angular/common';
   `,
   styles: []
 })
-export class OverallAdminDashboardComponent {}
+export class OverallAdminDashboardComponent {
+  stats = {
+    users: 120,
+    departmentAdmins: 8,
+    departments: 5,
+    complaints: 230,
+    resolved: 180,
+    pending: 30,
+    overdue: 20
+  };
+  aiInsights = [
+    'Water & Sanitation has the highest complaint resolution rate.',
+    'Predicted spike in road maintenance complaints next month.',
+    'Most common issue: Water outages.',
+    'Department Admin John resolved 15 complaints this week.'
+  ];
+  complaints: any[] = [];
+  users: any[] = [];
+  admins: any[] = [];
+  departments: any[] = [];
+  announcements: { message: string, date: string }[] = [];
+  newAnnouncement = '';
+  aiQuery = '';
+  aiResponse = '';
+
+  constructor(private notificationService: NotificationService) {}
+
+  ngOnInit() {
+    // TODO: Replace with real fetch logic
+    this.complaints = [
+      { id: '1', title: 'Burst pipe', department: 'Water', status: 'New', user: 'User A', date: new Date().toISOString() },
+      { id: '2', title: 'No water', department: 'Water', status: 'In Progress', user: 'User B', date: new Date().toISOString() },
+      { id: '3', title: 'Pothole', department: 'Roads', status: 'Pending', user: 'User C', date: new Date().toISOString() }
+    ];
+    this.users = [
+      { id: 'u1', name: 'User A', email: 'a@email.com', role: 'generaluser' },
+      { id: 'u2', name: 'User B', email: 'b@email.com', role: 'departmentadmin' }
+    ];
+    this.admins = [
+      { id: 'a1', name: 'Admin John', department: 'Water' },
+      { id: 'a2', name: 'Admin Jane', department: 'Roads' }
+    ];
+    this.departments = [
+      { id: 'd1', name: 'Water & Sanitation' },
+      { id: 'd2', name: 'Roads' }
+    ];
+    this.announcements = [
+      { message: 'System maintenance scheduled for Friday', date: new Date().toISOString() }
+    ];
+  }
+
+  postAnnouncement() {
+    if (this.newAnnouncement.trim()) {
+      this.announcements.unshift({ message: this.newAnnouncement, date: new Date().toISOString() });
+      this.notificationService.showSuccess('Announcement posted!');
+      this.newAnnouncement = '';
+    }
+  }
+
+  deleteUser(userId: string) {
+    this.users = this.users.filter(u => u.id !== userId);
+    this.notificationService.showSuccess('User deleted!');
+  }
+
+  deleteAdmin(adminId: string) {
+    this.admins = this.admins.filter(a => a.id !== adminId);
+    this.notificationService.showSuccess('Department admin deleted!');
+  }
+
+  deleteDepartment(deptId: string) {
+    this.departments = this.departments.filter(d => d.id !== deptId);
+    this.notificationService.showSuccess('Department deleted!');
+  }
+
+  askAI() {
+    // Placeholder for AI integration
+    this.aiResponse = 'AI says: ' + (this.aiQuery || 'Ask a question about city data, complaints, or trends!');
+  }
+}

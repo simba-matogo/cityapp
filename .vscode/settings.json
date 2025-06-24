@@ -20,5 +20,7 @@
   "emmet.includeLanguages": {
     "html": "html",
     "typescript": "html"
-  }
+  },
+  "avdmanager.sdkPath": "c:\\Users\\Ibanosh\\Documents\\Tawanda\\Angular\\cityapp\\src\\app\\components",
+  "avdmanager.avdHome": "C:\\android\\sdk\\cmdline-tools\\latest\\bin"
 }

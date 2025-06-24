@@ -15,15 +15,15 @@ export const routes: Routes = [
     component: FirebaseDemoComponent 
   },
   { 
-    path: 'user-dashboard', 
+    path: 'general-user-dashboard', 
     component: GeneralUserDashboardComponent 
   },
   { 
-    path: 'department-dashboard', 
+    path: 'department-admin-dashboard/:department', 
     component: DepartmentAdminDashboardComponent 
   },
   { 
-    path: 'admin-dashboard', 
+    path: 'overall-admin-dashboard', 
     component: OverallAdminDashboardComponent 
   }
 ];
