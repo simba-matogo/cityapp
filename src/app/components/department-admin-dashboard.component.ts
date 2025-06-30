@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../services/notification.service';
-import { ActivatedRoute } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-department-admin-dashboard',
@@ -14,7 +15,7 @@ import { ActivatedRoute } from '@angular/router';
       <nav class="w-full bg-white text-slate-800 py-4 px-4 sm:px-6 flex justify-between items-center shadow">
         <div class="flex items-center">
           <img src="/city.png" alt="City Logo" class="h-8 w-8 mr-3">
-          <span class="text-lg font-bold tracking-wide">Department Admin Portal</span>
+          <span class="text-lg font-bold tracking-wide">{{ departmentName }} Portal</span>
         </div>
         <div class="flex items-center gap-4">
           <div class="relative group cursor-pointer">
@@ -23,11 +24,11 @@ import { ActivatedRoute } from '@angular/router';
                 <circle cx="12" cy="8" r="4" />
                 <path d="M6 20c0-2.21 3.58-4 6-4s6 1.79 6 4" />
               </svg>
-              <span class="font-semibold">admin</span>
+              <span class="font-semibold">{{ userName }}</span>
             </div>
             <div class="absolute right-0 mt-2 w-40 bg-white border border-slate-200 rounded shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-50">
               <button class="w-full text-left px-4 py-2 hover:bg-slate-100 text-slate-800">Account Settings</button>
-              <button class="w-full text-left px-4 py-2 hover:bg-slate-100 text-slate-800">Logout</button>
+              <button (click)="logout()" class="w-full text-left px-4 py-2 hover:bg-slate-100 text-slate-800">Logout</button>
             </div>
           </div>
         </div>
@@ -51,8 +52,8 @@ import { ActivatedRoute } from '@angular/router';
               <path d="M6 20c0-2.21 3.58-4 6-4s6 1.79 6 4" />
             </svg>
             <div>
-              <div class="font-bold text-slate-800 text-base sm:text-lg">Admin Name</div>
-              <div class="text-xs text-slate-500">Department: Water & Sanitation</div>
+              <div class="font-bold text-slate-800 text-base sm:text-lg">{{ userName }}</div>
+              <div class="text-xs text-slate-500">Department: {{ departmentName }}</div>
               <button class="text-xs text-blue-600 hover:underline mt-1">Profile Settings</button>
             </div>
           </div>
@@ -213,13 +214,14 @@ import { ActivatedRoute } from '@angular/router';
   `,
   styles: []
 })
-export class DepartmentAdminDashboardComponent {
+export class DepartmentAdminDashboardComponent implements OnInit {
   departmentName = '';
   complaints: any[] = [];
   showAllComplaints = false;
   replyText: { [id: string]: string } = {};
   notifications: { message: string, date: string }[] = [];
   newNotification = '';
+  userName = '';
 
   departmentDisplayNames: { [key: string]: string } = {
     water: 'Water & Sanitation',
@@ -227,7 +229,7 @@ export class DepartmentAdminDashboardComponent {
     wastemanagement: 'Waste Management'
   };
 
-  constructor(private notificationService: NotificationService, private route: ActivatedRoute) {}
+  constructor(private notificationService: NotificationService, private authService: AuthService, private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit() {
     // Get department from route
@@ -246,6 +248,7 @@ export class DepartmentAdminDashboardComponent {
       { message: 'Water outage scheduled for tomorrow', date: new Date().toISOString() },
       { message: 'New waste collection schedule posted', date: new Date().toISOString() }
     ];
+    this.userName = this.authService.getUserName();
   }
 
   get visibleComplaints() {
@@ -269,5 +272,9 @@ export class DepartmentAdminDashboardComponent {
       this.notificationService.showSuccess('Announcement posted!');
       this.newNotification = '';
     }
+  }
+
+  logout() {
+    this.authService.logout();
   }
 }

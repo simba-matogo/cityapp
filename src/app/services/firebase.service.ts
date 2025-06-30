@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { 
   getFirestore, 
   collection, 
@@ -25,18 +25,51 @@ import { retryWithBackoff, timeoutPromise } from '../utils/retry-with-backoff';
   providedIn: 'root'
 })
 export class FirebaseService {
-  private app = initializeApp(environment.firebase);
-  private db = initializeFirestore(this.app, {
-    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-  });
+  private static instance: FirebaseService;
+  private app: any;
+  private db: any;
   
   // Connection state observable
   private _isConnected = new BehaviorSubject<boolean>(true);
   public isConnected$ = this._isConnected.asObservable();
 
   constructor() {
-    console.log('Firebase initialized successfully');
-    this.setupOfflinePersistence();
+    if (FirebaseService.instance) {
+      return FirebaseService.instance;
+    }
+    
+    this.initializeFirebase();
+    FirebaseService.instance = this;
+  }
+
+  private initializeFirebase() {
+    try {
+      // Check if Firebase app is already initialized
+      const apps = getApps();
+      if (apps.length === 0) {
+        this.app = initializeApp(environment.firebase);
+        console.log('Firebase app initialized');
+      } else {
+        this.app = apps[0];
+        console.log('Using existing Firebase app');
+      }
+
+      // Check if Firestore is already initialized
+      try {
+        this.db = getFirestore(this.app);
+        console.log('Using existing Firestore instance');
+      } catch (error) {
+        // If getFirestore fails, initialize a new one
+        this.db = initializeFirestore(this.app, {
+          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+        });
+        console.log('Firestore initialized with persistence');
+      }
+
+      this.setupOfflinePersistence();
+    } catch (error) {
+      console.error('Error initializing Firebase:', error);
+    }
   }
 
   // Enable offline persistence

@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, Subscription } from 'rxjs';
 import { ToastNotificationComponent } from './toast-notification.component';
@@ -51,7 +51,7 @@ export class NotificationContainerComponent implements OnDestroy {
   private subscription: Subscription;
   private destroy$ = new Subject<void>();
   
-  constructor(private notificationService: NotificationService) {
+  constructor(private notificationService: NotificationService, private cdr: ChangeDetectorRef) {
     // Subscribe to the toast notifications
     this.subscription = this.notificationService.onNotification()
       .subscribe(toast => {
@@ -87,6 +87,7 @@ export class NotificationContainerComponent implements OnDestroy {
       this.toasts = [...this.toasts, toast]; // Create new array to trigger change detection
       console.log(`Toast added. Current toast count: ${this.toasts.length}`);
     }
+    this.cdr.detectChanges();
     
     // Auto-remove toast after its duration
     if (toast.duration > 0) {
@@ -99,5 +100,6 @@ export class NotificationContainerComponent implements OnDestroy {
 
   removeToast(id: string): void {
     this.toasts = this.toasts.filter(toast => toast.id !== id);
+    this.cdr.detectChanges();
   }
 }

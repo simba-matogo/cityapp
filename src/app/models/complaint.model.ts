@@ -1,4 +1,4 @@
-export type Department = 'Water' | 'Roads' | 'RefuseCollection' | 'HumanResources' | 'SalesAndPayments' | 'Other';
+export type Department = 'water' | 'roads' | 'wastemanagement' | 'general' | 'other';
 export type Priority = 'Low' | 'Medium' | 'High' | 'Critical';
 export type Status = 'New' | 'Assigned' | 'InProgress' | 'PendingReview' | 'Resolved' | 'Closed' | 'Reopened';
 

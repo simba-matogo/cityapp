@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FirebaseService } from '../services/firebase.service';
 import { NotificationService } from '../services/notification.service';
+import { AuthService } from '../services/auth.service';
 import { Complaint } from '../models/complaint.model';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-general-user-dashboard',
@@ -19,15 +21,15 @@ import { Complaint } from '../models/complaint.model';
         </div>
         <div class="flex items-center gap-4">
           <div class="relative group cursor-pointer">
-            <div class="">
+            <div class="flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-6 w-6 text-blue-600 mr-2" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="8" r="4" />
                 <path d="M6 20c0-2.21 3.58-4 6-4s6 1.79 6 4" />
               </svg>
-              <span class="font-semibold">natasha</span>
+              <span class="font-semibold">{{ userName }}</span>
             </div>
             <div class="absolute right-0 mt-2 w-40 bg-white border border-slate-200 rounded shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-50">
-              <button class="w-full text-left px-4 py-2 hover:bg-slate-100 text-slate-800">Logout</button>
+              <button (click)="logout()" class="w-full text-left px-4 py-2 hover:bg-slate-100 text-slate-800">Logout</button>
             </div>
           </div>
         </div>
@@ -231,20 +233,17 @@ import { Complaint } from '../models/complaint.model';
               <label for="department" class="block text-sm font-medium text-gray-700 mb-1">Department *</label>
               <select id="department" [(ngModel)]="newComplaint.department" name="department" 
                 class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
-                <option value="Water">Water</option>
-                <option value="Roads">Roads</option>
-                <option value="RefuseCollection">Waste Management</option>
-                <option value="Electricity">Electricity</option>
-                <option value="Health">Health</option>
-                <option value="Other">Other</option>
+                <option value="water">Water & Sanitation</option>
+                <option value="roads">Roads & Infrastructure</option>
+                <option value="wastemanagement">Waste Management</option>
+                <option value="other">Other</option>
               </select>
             </div>            <div class="grid grid-cols-2 gap-2 mb-4">
               <div>
-                <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location *</label>
-                <input type="text" id="location" [(ngModel)]="newComplaint.location!.address" name="location" 
-                  [ngClass]="{'border-red-500 focus:ring-red-500': formErrors['location']}"
+                <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input type="text" id="location" [(ngModel)]="locationAddress" name="location" 
                   class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm" 
-                  placeholder="Area affected" required>
+                  placeholder="Enter the location of the issue">
                 <p *ngIf="formErrors['location']" class="text-red-500 text-xs mt-0.5">Location is required</p>
               </div>
               
@@ -293,59 +292,90 @@ export class GeneralUserDashboardComponent implements OnInit {
   showComplaintModal = false;
   submittingComplaint = false;
   formErrors: {[key: string]: boolean} = {};
+  userName: string = 'User';
   
   newComplaint: Partial<Complaint> = {
     title: '',
     description: '',
-    department: 'Other',
+    department: 'other',
     category: '',
+    location: {
+      address: ''
+    },
     priority: 'Medium',
     status: 'New',
-    location: { address: '' }
+    dates: {
+      created: new Date().toISOString(),
+      updated: new Date().toISOString()
+    }
   };
   constructor(
     private firebaseService: FirebaseService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private authService: AuthService,
+    private router: Router
   ) {}
   async ngOnInit() {
+    // Get current user information
+    this.getCurrentUserInfo();
+    
+    // Load complaints
+    await this.loadComplaints();
+  }
+
+  private getCurrentUserInfo() {
+    const currentUser = this.authService.auth.currentUser;
+    if (currentUser && currentUser.email) {
+      // Extract name from email (everything before @)
+      const emailName = currentUser.email.split('@')[0];
+      // Capitalize first letter and replace dots/underscores with spaces
+      this.userName = emailName
+        .replace(/[._]/g, ' ')
+        .replace(/\b\w/g, (l: string) => l.toUpperCase());
+    }
+  }
+
+  async loadComplaints() {
     try {
       // Fetch only complaints for the current user (replace 'natasha' with real user id/email)
-      const allComplaints = await this.firebaseService.getCollection('complaints');
-      
-      // Process complaints only if we have valid data
-      if (Array.isArray(allComplaints)) {
-        this.complaints = allComplaints
-          .filter((c: any) => c && c.submittedBy?.name === 'natasha')
-          .map((c: any) => ({
-            id: c.id || '',
-            title: c.title || 'Untitled',
-            description: c.description || '',
-            department: c.department || 'Other',
-            category: c.category || '',
-            location: c.location || { address: '' },
-            priority: c.priority || 'Low',
-            status: c.status || 'New',
-            submittedBy: c.submittedBy || { userId: '', name: '', contact: '', email: '' },
-            assignedTo: c.assignedTo || undefined,
-            dates: c.dates || { created: '', updated: '' },
-            mediaUrls: c.mediaUrls || [],
-            updates: c.updates || [],
-            aiAnalysis: c.aiAnalysis || undefined,
-            publicId: c.publicId || '',
-            isAnonymous: c.isAnonymous || false,
-            isPublic: c.isPublic ?? false,
-            tags: c.tags || [],
-            votes: c.votes || 0
-          }));
-      } else {
-        this.complaints = [];
-        console.error('Received invalid data format from Firebase');
+      const currentUser = this.authService.auth.currentUser;
+      if (!currentUser) {
+        this.error = 'User not authenticated';
+        this.loading = false;
+        return;
       }
+
+      const complaints = await this.firebaseService.getCollection('complaints');
+      
+      // Filter complaints for the current user and map to Complaint interface
+      this.complaints = complaints
+        .filter((complaint: any) => complaint.submittedBy?.email === currentUser.email)
+        .map((complaint: any) => ({
+          id: complaint.id || '',
+          title: complaint.title || 'Untitled',
+          description: complaint.description || '',
+          department: complaint.department || 'other',
+          category: complaint.category || '',
+          location: complaint.location || { address: '' },
+          priority: complaint.priority || 'Low',
+          status: complaint.status || 'New',
+          submittedBy: complaint.submittedBy || { userId: '', name: '', contact: '', email: '' },
+          assignedTo: complaint.assignedTo || undefined,
+          dates: complaint.dates || { created: '', updated: '' },
+          mediaUrls: complaint.mediaUrls || [],
+          updates: complaint.updates || [],
+          aiAnalysis: complaint.aiAnalysis || undefined,
+          publicId: complaint.publicId || '',
+          isAnonymous: complaint.isAnonymous || false,
+          isPublic: complaint.isPublic ?? false,
+          tags: complaint.tags || [],
+          votes: complaint.votes || 0
+        } as Complaint));
       
       this.loading = false;
-    } catch (err: any) {
-      console.error('Error in dashboard initialization:', err);
-      this.error = err.message || 'Failed to load complaints. Please try again later.';
+    } catch (error) {
+      console.error('Error loading complaints:', error);
+      this.error = 'Failed to load complaints';
       this.loading = false;
     }
   }
@@ -357,11 +387,17 @@ export class GeneralUserDashboardComponent implements OnInit {
     this.newComplaint = {
       title: '',
       description: '',
-      department: 'Other',
+      department: 'other',
       category: '',
+      location: {
+        address: ''
+      },
       priority: 'Medium',
       status: 'New',
-      location: { address: '' }
+      dates: {
+        created: new Date().toISOString(),
+        updated: new Date().toISOString()
+      }
     };
     // Show the modal
     this.showComplaintModal = true;
@@ -384,7 +420,7 @@ export class GeneralUserDashboardComponent implements OnInit {
       if (!this.newComplaint.description || this.newComplaint.description.trim() === '') {
         this.formErrors['description'] = true;
       }
-      if (!this.newComplaint.location?.address || this.newComplaint.location.address.trim() === '') {
+      if (!this.locationAddress || this.locationAddress.trim() === '') {
         this.formErrors['location'] = true;
       }
       
@@ -397,11 +433,12 @@ export class GeneralUserDashboardComponent implements OnInit {
       console.log('Preparing complaint submission...');
 
       // Add user information
+      const currentUser = this.authService.auth.currentUser;
       this.newComplaint.submittedBy = {
-        userId: 'user123', // Replace with actual user ID
-        name: 'natasha',  // Replace with actual user name
+        userId: currentUser?.uid || '',
+        name: this.userName,
         contact: '',
-        email: ''
+        email: currentUser?.email || ''
       };
 
       // Set dates
@@ -410,6 +447,13 @@ export class GeneralUserDashboardComponent implements OnInit {
         created: now,
         updated: now
       };
+
+      // Ensure location is properly set
+      if (!this.newComplaint.location) {
+        this.newComplaint.location = { address: this.locationAddress };
+      } else {
+        this.newComplaint.location.address = this.locationAddress;
+      }
 
       // Set other defaults
       this.newComplaint.isAnonymous = false;
@@ -474,7 +518,7 @@ export class GeneralUserDashboardComponent implements OnInit {
       if (!this.newComplaint.description || this.newComplaint.description.trim() === '') {
         this.formErrors['description'] = true;
       }
-      if (!this.newComplaint.location?.address || this.newComplaint.location.address.trim() === '') {
+      if (!this.locationAddress || this.locationAddress.trim() === '') {
         this.formErrors['location'] = true;
       }
       if (Object.keys(this.formErrors).length > 0) {
@@ -529,7 +573,7 @@ export class GeneralUserDashboardComponent implements OnInit {
             id: c.id || '',
             title: c.title || 'Untitled',
             description: c.description || '',
-            department: c.department || 'Other',
+            department: c.department || 'other',
             category: c.category || '',
             location: c.location || { address: '' },
             priority: c.priority || 'Low',
@@ -566,5 +610,20 @@ export class GeneralUserDashboardComponent implements OnInit {
     if (complaint.status === 'InProgress') return 'In Progress';
     if (complaint.status === 'PendingReview') return 'Pending';
     return complaint.status;
+  }
+
+  logout() {
+    this.authService.logout();
+  }
+
+  get locationAddress(): string {
+    return this.newComplaint.location?.address || '';
+  }
+
+  set locationAddress(value: string) {
+    if (!this.newComplaint.location) {
+      this.newComplaint.location = { address: '' };
+    }
+    this.newComplaint.location.address = value;
   }
 }

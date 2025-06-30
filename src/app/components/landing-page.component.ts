@@ -1,11 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../services/auth.service';
 import { FormsModule } from '@angular/forms';
 import { FirebaseError } from 'firebase/app';
-import { NotificationService } from '../services/notification.service';
 import { Router } from '@angular/router';
 import { setupUserRole } from '../utils/user-setup';
+import { NotificationService } from '../services/notification.service';
 
 @Component({
   selector: 'app-landing-page',
@@ -163,11 +163,9 @@ import { setupUserRole } from '../utils/user-setup';
               <input type="password" id="password" [(ngModel)]="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
             </div>
             <div class="mb-2">
-              <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
-              <select id="role" [(ngModel)]="role" name="role" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option value="generaluser">General User</option>
-                <option value="admin">Department Admin</option>
-                <option value="overalladmin">Overall Admin</option>
+              <label for="loginDepartment" class="block text-sm font-medium text-gray-700">Department/Role</label>
+              <select id="loginDepartment" [(ngModel)]="department" name="loginDepartment" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option *ngFor="let dept of departments" [value]="dept.value">{{ dept.label }}</option>
               </select>
             </div>
             <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">Login</button>
@@ -183,11 +181,33 @@ import { setupUserRole } from '../utils/user-setup';
       <!-- Sign-Up Modal -->
       <div *ngIf="showSignUpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white bg-opacity-70 backdrop-blur-md rounded-lg shadow-lg p-4 w-80 relative">
-          <button (click)="showSignUpModal = false" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800 transition">
+          <!-- Exit button only shown in normal form state -->
+          <button *ngIf="!isSigningUp && !signUpSuccess" (click)="showSignUpModal = false" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
+          
+          <!-- Loading State -->
+          <div *ngIf="isSigningUp" class="flex flex-col items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-green-500 mb-4"></div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Creating Account...</h3>
+            <p class="text-gray-600 text-center">Please wait while we set up your account</p>
+          </div>
+
+          <!-- Success State -->
+          <div *ngIf="signUpSuccess" class="flex flex-col items-center justify-center py-8">
+            <div class="rounded-full h-16 w-16 bg-green-500 flex items-center justify-center mb-4 animate-pulse">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-green-600 mb-2">Account Created Successfully!</h3>
+            <p class="text-gray-600 text-center">You can now log in with your new account</p>
+          </div>
+
+          <!-- Normal Sign-Up Form -->
+          <div *ngIf="!isSigningUp && !signUpSuccess">
           <div class="flex justify-center mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
@@ -212,17 +232,16 @@ import { setupUserRole } from '../utils/user-setup';
               <input type="password" id="password" [(ngModel)]="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
             </div>
             <div class="mb-2">
-              <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
-              <select id="role" [(ngModel)]="role" name="role" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option value="generaluser">General User</option>
-                <option value="admin">Admin</option>
-                <option value="overalladmin">Overall Admin</option>
+                <label for="department" class="block text-sm font-medium text-gray-700">Department/Role</label>
+                <select id="department" [(ngModel)]="department" name="department" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" (change)="onDepartmentChange()">
+                  <option *ngFor="let dept of departments" [value]="dept.value">{{ dept.label }}</option>
               </select>
             </div>
             <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">Sign Up</button>
           </form>
           <div class="mt-2 text-center">
             <a href="#" (click)="openLoginModal()" class="text-green-600 hover:underline">Back to Login</a>
+            </div>
           </div>
         </div>
       </div>
@@ -233,103 +252,139 @@ import { setupUserRole } from '../utils/user-setup';
 export class LandingPageComponent {
   showLoginModal = false;
   showSignUpModal = false;
+  isSigningUp = false;
+  signUpSuccess = false;
 
   email = '';
   password = '';
   role = 'generaluser';
-  signUpErrorMessage = ''; // Add this property to store error messages
+  department = 'general';
+  signUpErrorMessage = '';
 
-  constructor(private authService: AuthService, private notificationService: NotificationService, private router: Router) {}
+  // Available departments for selection
+  departments = [
+    { value: 'general', label: 'General User' },
+    { value: 'water', label: 'Water & Sanitation' },
+    { value: 'roads', label: 'Roads & Infrastructure' },
+    { value: 'wastemanagement', label: 'Waste Management' },
+    { value: 'overalladmin', label: 'Overall Administration' }
+  ];
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private notificationService: NotificationService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   openLoginModal() {
     this.showLoginModal = true;
     this.showSignUpModal = false;
+    this.resetSignUpState && this.resetSignUpState();
   }
 
   openSignUpModal() {
     this.showLoginModal = false;
     this.showSignUpModal = true;
-  }  async login() {
+    this.resetSignUpState && this.resetSignUpState();
+  }
+
+  async login() {
     let loadingNotificationId: string | undefined;
     try {
-      loadingNotificationId = this.notificationService.info('Logging in...', 'Please wait', 0);
+      setTimeout(() => {
+        loadingNotificationId = this.notificationService.info('Logging in...', 'Please wait', 0);
+      }, 0);
       const user = await this.authService.login(this.email, this.password);
       this.showLoginModal = false;
-      if (loadingNotificationId) this.notificationService.dismiss(loadingNotificationId);
-      
-      console.log('User logged in with role:', user?.role);
-      
-      // Special case for predefined users - make sure they have the correct role in Firestore
-      await this.setupPredefinedUserRole(user.uid);
-      
+      setTimeout(() => {
+        if (loadingNotificationId) this.notificationService.dismiss(loadingNotificationId);
+        this.notificationService.success('Login successful', 'Welcome!', 4000);
+      }, 0);
       // Redirect based on role
-      if (this.role === 'overalladmin' || user?.role === 'overalladmin') {
-        console.log('Redirecting to overall admin dashboard');
-        this.notificationService.success('Login successful', 'Welcome, Overall Admin!', 4000);
+      if (user?.role === 'overalladmin') {
         this.router.navigate(['/overall-admin-dashboard']);
-      } else if (this.role === 'admin' || user?.role === 'admin' || user?.role === 'departmentadmin') {
-        const dept = user.department ? user.department.toLowerCase() : this.getDepartmentFromEmail(this.email);
-        console.log(`Redirecting to department admin dashboard for ${dept}`);
-        this.notificationService.success('Login successful', `Welcome, ${dept.charAt(0).toUpperCase() + dept.slice(1)} Department Admin!`, 4000);
+      } else if (user?.role === 'admin' || user?.role === 'departmentadmin') {
+        const dept = user.department ? user.department.toLowerCase() : 'general';
         this.router.navigate([`/department-admin-dashboard/${dept}`]);
       } else {
-        console.log('Redirecting to general user dashboard');
-        this.notificationService.success('Login successful', 'Welcome!', 4000);
         this.router.navigate(['/general-user-dashboard']);
       }
     } catch (error) {
-      if (loadingNotificationId) this.notificationService.dismiss(loadingNotificationId);
-      this.notificationService.error('Login Failed', (error as any)?.message || 'Unknown error', 5000);
+      setTimeout(() => {
+        if (loadingNotificationId) this.notificationService.dismiss(loadingNotificationId);
+        this.notificationService.error('Login Failed', (error as any)?.message || 'Unknown error', 5000);
+      }, 0);
       console.error('Login failed:', error);
     }
   }
-  
-  // Helper function to set up predefined user roles based on email
-  private async setupPredefinedUserRole(uid: string): Promise<void> {
-    // If user selected a specific role in the dropdown, set it
-    if (this.role === 'overalladmin') {
-      await setupUserRole(uid, 'overalladmin');
-      return;
-    }
-    
-    if (this.role === 'admin') {
-      const department = this.getDepartmentFromEmail(this.email);
-      await setupUserRole(uid, 'departmentadmin', department);
-      return;
-    }
-    
-    // If specific known emails, enforce their roles
-    if (this.email === 'simbarashe@harare.gov.zw' || this.email === 'overalladmin@example.com') {
-      await setupUserRole(uid, 'overalladmin');
-    } else if (this.email === 'water@harare.gov.zw') {
-      await setupUserRole(uid, 'departmentadmin', 'water');
-    } else if (this.email === 'roads@harare.gov.zw') {
-      await setupUserRole(uid, 'departmentadmin', 'roads');
-    } else if (this.email === 'waste@harare.gov.zw') {
-      await setupUserRole(uid, 'departmentadmin', 'wastemanagement');
-    }
-  }
-    // Helper to determine department from email
-  private getDepartmentFromEmail(email: string): string {
-    if (email.includes('water')) return 'water';
-    if (email.includes('road')) return 'roads';
-    if (email.includes('waste')) return 'wastemanagement';
-    return 'general';
+
+  onDepartmentChange() {
+    // Optionally handle department dropdown changes
   }
 
   async signUp() {
+    console.log('=== SIGN UP STARTED ===');
+    console.log('Current state - isSigningUp:', this.isSigningUp, 'signUpSuccess:', this.signUpSuccess);
+    console.log('Selected department:', this.department);
+    const userRole = this.determineRoleFromDepartment(this.department);
+    console.log('Determined role for signup:', userRole);
+    this.isSigningUp = true;
+    this.signUpSuccess = false;
     let loadingNotificationId: string | undefined;
     try {
-      loadingNotificationId = this.notificationService.info('Creating account...', 'Please wait', 0);
-      await this.authService.signUp(this.email, this.password, this.role);
-      this.showSignUpModal = false;
-      if (loadingNotificationId) this.notificationService.dismiss(loadingNotificationId);
-      this.notificationService.success('Sign-up successful', 'Please log in with your new account', 5000);
+      setTimeout(() => {
+        loadingNotificationId = this.notificationService.info('Creating account...', 'Please wait', 0);
+      }, 0);
+      await this.authService.signUp(this.email, this.password, userRole, this.department);
+      setTimeout(() => {
+        if (loadingNotificationId) this.notificationService.dismiss(loadingNotificationId);
+        this.isSigningUp = false;
+        this.signUpSuccess = true;
+        this.notificationService.success('Sign-up successful', 'Please log in with your new account', 5000);
+        this.cdr.detectChanges(); // Force UI update
+        // Always close modal after 2s, regardless of department
+        setTimeout(() => {
+          this.showSignUpModal = false;
+          this.openLoginModal();
+          this.isSigningUp = false;
+          this.signUpSuccess = false;
+          this.email = '';
+          this.password = '';
+          this.department = 'general';
+          this.cdr.detectChanges(); // Force UI update
+          this.cdr.markForCheck(); // Ensure Angular marks for check
+          console.log('Modal closed and reset complete');
+        }, 0);
+      }, 0);
+      setTimeout(() => {}, 0); // Ensure async
     } catch (error) {
-      if (loadingNotificationId) this.notificationService.dismiss(loadingNotificationId);
-      const firebaseError = error as FirebaseError;
-      this.signUpErrorMessage = firebaseError.message || 'An unexpected error occurred during sign-up.';
-      this.notificationService.error('Sign-up Failed', this.signUpErrorMessage, 5000);
+      setTimeout(() => {
+        if (loadingNotificationId) this.notificationService.dismiss(loadingNotificationId);
+        this.isSigningUp = false;
+        this.signUpSuccess = false;
+        const firebaseError = error as any;
+        this.signUpErrorMessage = firebaseError.message || 'An unexpected error occurred during sign-up.';
+        this.notificationService.error('Sign-up Failed', this.signUpErrorMessage, 5000);
+        this.showSignUpModal = true;
+        this.cdr.detectChanges(); // Force UI update
+      }, 0);
     }
+  }
+
+  private determineRoleFromDepartment(department: string): string {
+    if (department === 'overalladmin') {
+      return 'overalladmin';
+    } else if (['water', 'roads', 'wastemanagement'].includes(department)) {
+      return 'departmentadmin';
+    } else {
+      return 'generaluser';
+    }
+  }
+
+  // Add method to reset sign-up state
+  resetSignUpState() {
+    this.isSigningUp = false;
+    this.signUpSuccess = false;
+    this.signUpErrorMessage = '';
   }
 }
