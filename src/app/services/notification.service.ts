@@ -16,25 +16,28 @@ export class NotificationService {
   private notification$ = new Subject<ToastNotification>();
   private activeNotifications = new Map<string, ToastNotification>();
   
-  constructor() {}
+  constructor() {
+    // Ensure we don't trigger browser notification permissions
+    console.log('NotificationService initialized - using custom toast system only');
+  }
   
-  // Method to show a success toast
+  // Method to show a success toast with enhanced formatting
   showSuccess(message: string, duration: number = 5000): void {
     this.show(message, 'success', duration);
   }
   
-  // Method to show an error toast
-  showError(message: string, duration: number = 5000): void {
+  // Method to show an error toast with enhanced formatting
+  showError(message: string, duration: number = 6000): void {
     this.show(message, 'error', duration);
   }
   
-  // Method to show an info toast
-  showInfo(message: string, duration: number = 5000): void {
+  // Method to show an info toast with enhanced formatting
+  showInfo(message: string, duration: number = 4000): void {
     this.show(message, 'info', duration);
   }
   
-  // Method to show a warning toast
-  showWarning(message: string, duration: number = 5000): void {
+  // Method to show a warning toast with enhanced formatting
+  showWarning(message: string, duration: number = 4000): void {
     this.show(message, 'warning', duration);
   }
   
@@ -72,7 +75,7 @@ export class NotificationService {
     }
   }  // Generic method to show any type of toast
   show(message: string, type: 'success' | 'error' | 'info' | 'warning', duration: number = 5000): string {
-    console.log(`Creating notification: ${type} - ${message}`);
+    console.log('NotificationService.show called with:', { message, type, duration });
     const id = uuidv4();
     const notification = {
       id,
@@ -82,16 +85,20 @@ export class NotificationService {
     };
     
     this.activeNotifications.set(id, notification);
+    console.log('Emitting notification:', notification);
+    this.notification$.next({...notification});
     
-    // Emit the notification immediately
-    try {
-      console.log('Dispatching notification:', notification);
-      this.notification$.next({...notification}); // Clone to ensure new reference
-    } catch (err) {
-      console.error('Error dispatching notification:', err);
-    }
+    // Auto-dismiss after duration
+    setTimeout(() => {
+      this.dismiss(id);
+    }, duration);
     
     return id;
+  }
+  
+  // Observable to listen to notifications
+  getNotifications(): Observable<ToastNotification> {
+    return this.notification$.asObservable();
   }
   
   // Method to explicitly show a toast after a delay

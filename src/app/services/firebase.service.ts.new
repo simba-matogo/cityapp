@@ -39,7 +39,7 @@ export class FirebaseService {
 
   constructor() {
     if (FirebaseService.instance) {
-      return FirebaseService.instance;
+      return FirebaseService.instance as any;
     }
     
     this.initializeFirebase();
@@ -267,4 +267,3 @@ export class FirebaseService {
     return this._isConnected.value;
   }
 }
-

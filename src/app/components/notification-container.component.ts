@@ -14,7 +14,7 @@ export interface ToastNotification {
 @Component({  selector: 'app-notification-container',
   standalone: true,
   imports: [CommonModule, ToastNotificationComponent],  template: `
-    <div class="fixed top-5 right-5 z-[9999] flex flex-col space-y-2 pointer-events-none">
+    <div class="fixed top-5 left-1/2 transform -translate-x-1/2 z-[9999] flex flex-col space-y-3 pointer-events-none min-w-96">
       <div *ngIf="toasts.length === 0" class="hidden">No toasts</div>
       @for (toast of toasts; track toast.id) {
         <div class="relative pointer-events-auto">
@@ -32,10 +32,11 @@ export interface ToastNotification {
     :host {
       position: fixed;
       top: 0;
-      right: 0;
-      left: auto;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 2147483647; /* Highest possible z-index for visibility */
       pointer-events: none;
+      min-width: 384px; /* 96 in rem */
     }
     .fixed {
       z-index: 2147483647 !important;
@@ -52,9 +53,11 @@ export class NotificationContainerComponent implements OnDestroy {
   private destroy$ = new Subject<void>();
   
   constructor(private notificationService: NotificationService, private cdr: ChangeDetectorRef) {
+    console.log('NotificationContainerComponent initialized');
     // Subscribe to the toast notifications
-    this.subscription = this.notificationService.onNotification()
+    this.subscription = this.notificationService.getNotifications()
       .subscribe(toast => {
+        console.log('NotificationContainer received toast:', toast);
         this.addToast(toast);
       });
   }
