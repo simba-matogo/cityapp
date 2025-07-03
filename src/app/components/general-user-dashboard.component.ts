@@ -2,9 +2,10 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FirebaseService } from '../services/firebase.service';
-import { NotificationService } from '../services/notification.service';
 import { AuthService } from '../services/auth.service';
 import { Complaint } from '../models/complaint.model';
+import { Announcement } from '../models/announcement.model';
+import { AnnouncementService } from '../services/announcement.service';
 import { Router } from '@angular/router';
 import { UserService } from '../services/user.service';
 import { ThemeService } from '../services/theme.service';
@@ -14,56 +15,58 @@ import { ThemeService } from '../services/theme.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-white" [ngClass]="{'dark': isDarkMode}">
+    <div class="min-h-screen" [class]="isDarkMode ? 'bg-gray-900' : 'bg-slate-50'">
       <!-- Modern Navbar -->
-      <nav class="sticky top-0 z-50 w-full bg-white/80 dark:bg-slate-900/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 shadow-sm">
+      <nav class="sticky top-0 z-50 w-full backdrop-blur-lg border-b shadow-sm" 
+           [class]="isDarkMode ? 'bg-gray-800/80 border-gray-700' : 'bg-white/80 border-slate-200'">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex justify-between items-center h-16">
             <div class="flex items-center gap-3">
               <img src="/city.png" alt="City Logo" class="h-10 w-10 object-contain">
               <div class="flex flex-col">
                 <span class="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Harare City Portal</span>
-                <span class="text-xs text-slate-500 dark:text-slate-400">General User Dashboard</span>
+                <span class="text-xs" [class]="isDarkMode ? 'text-gray-400' : 'text-slate-500'">General User Dashboard</span>
               </div>
             </div>
             <div class="flex items-center gap-4">
-              <!-- Theme Toggle -->
-              <button (click)="toggleDarkMode()" class="p-2 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition" [title]="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
-                <svg *ngIf="!isDarkMode" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <!-- Dark Mode Toggle -->
+              <button (click)="toggleDarkMode()" 
+                      class="p-2 rounded-lg transition-all duration-200" 
+                      [class]="isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'"
+                      title="Toggle dark mode">
+                <svg *ngIf="!isDarkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
-                <svg *ngIf="isDarkMode" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg *ngIf="isDarkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               </button>
               
-              <!-- Notifications -->
-              <button class="relative p-2 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <span class="absolute top-0 right-0 h-4 w-4 text-xs flex items-center justify-center bg-red-500 text-white rounded-full">{{totalUsersCount || 0}}</span>
-              </button>
               <!-- User Menu -->
               <div class="relative group">
-                <button class="flex items-center gap-2 p-2 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-800 transition">
+                <button class="flex items-center gap-2 p-2 rounded-full transition" 
+                        [class]="isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-blue-50'">
                   <span class="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white font-medium">
                     {{userName[0]}}
                   </span>
-                  <span class="hidden sm:block font-medium text-slate-700 dark:text-white">{{userName}}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <span class="hidden sm:block font-medium" [class]="isDarkMode ? 'text-gray-200' : 'text-slate-700'">{{userName}}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" [class]="isDarkMode ? 'text-gray-400' : 'text-slate-400'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 invisible group-hover:visible transition-all">
-                  <div class="p-3 border-b border-slate-200 dark:border-slate-700">
-                    <p class="text-sm font-medium text-slate-700 dark:text-white">{{userName}}</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Citizen</p>
+                <div class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border invisible group-hover:visible transition-all" 
+                     [class]="isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200'">
+                  <div class="p-3 border-b" [class]="isDarkMode ? 'border-gray-700' : 'border-slate-200'">
+                    <p class="text-sm font-medium" [class]="isDarkMode ? 'text-gray-200' : 'text-slate-700'">{{userName}}</p>
+                    <p class="text-xs" [class]="isDarkMode ? 'text-gray-400' : 'text-slate-500'">Citizen</p>
                   </div>
                   <div class="p-2">
-                    <button class="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-md transition">Profile Settings</button>
-                    <button class="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-md transition">Help Center</button>
-                    <button (click)="logout()" class="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition">Logout</button>
+                    <button class="w-full text-left px-3 py-2 text-sm rounded-md transition" 
+                            [class]="isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-slate-700 hover:bg-slate-50'">Profile Settings</button>
+                    <button class="w-full text-left px-3 py-2 text-sm rounded-md transition" 
+                            [class]="isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-slate-700 hover:bg-slate-50'">Help Center</button>
+                    <button (click)="logout()" class="w-full text-left px-3 py-2 text-sm rounded-md transition" 
+                            [class]="isDarkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-50'">Logout</button>
                   </div>
                 </div>
               </div>
@@ -71,6 +74,40 @@ import { ThemeService } from '../services/theme.service';
           </div>
         </div>
       </nav>
+
+      <!-- Smart City Citizen Portal Banner -->
+      <div class="border-b" [class]="isDarkMode ? 'bg-gradient-to-r from-gray-800 to-gray-700 border-gray-600' : 'bg-gradient-to-r from-green-50 to-blue-50 border-green-100'">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div class="flex items-center justify-center gap-2 text-center">
+            <!-- City icons animation -->
+            <div class="flex items-center gap-1">
+              <svg class="w-5 h-5 text-green-500 animate-bounce" style="animation-delay: 0.2s" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+              <span class="text-sm font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                🏙️ Smart City Citizen Portal 🏙️
+              </span>
+              <span class="hidden sm:inline" [class]="isDarkMode ? 'text-gray-500' : 'text-slate-400'">•</span>
+              <span class="text-xs flex items-center gap-1" [class]="isDarkMode ? 'text-gray-300' : 'text-slate-600'">
+                <svg class="w-3 h-3 text-purple-500 animate-pulse" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                </svg>
+                🌟 Your Voice • Our Priority • Better Tomorrow 🌟
+              </span>
+            </div>
+            
+            <!-- More city icons -->
+            <div class="flex items-center gap-1">
+              <svg class="w-5 h-5 text-blue-400 animate-bounce" style="animation-delay: 0.8s" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Main Content -->
       <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -256,15 +293,43 @@ import { ThemeService } from '../services/theme.service';
                 <div *ngIf="announcements.length === 0" class="text-center text-xs text-slate-500 py-4">
                   No city updates available at this time.
                 </div>
-                <div *ngFor="let announcement of announcements" class="flex items-center text-[10px] text-slate-700 bg-slate-50/60 rounded px-2 py-1">
-                  <span class="inline-block w-1.5 h-1.5 rounded-full mr-2 flex-shrink-0"
-                        [ngClass]="{
-                          'bg-blue-500': announcement.type === 'info',
-                          'bg-amber-500': announcement.type === 'warning',
-                          'bg-green-500': announcement.type === 'success',
-                          'bg-red-500': announcement.type === 'alert'
-                        }"></span>
-                  <span class="truncate">{{announcement.message || announcement.title}}</span>
+                <div *ngFor="let announcement of announcements" 
+                     class="border border-slate-100 rounded-lg p-2 hover:shadow-sm transition-shadow cursor-pointer bg-white/60"
+                     (click)="viewAnnouncement(announcement)">
+                  <div class="flex items-start justify-between mb-1">
+                    <h4 class="font-medium text-slate-800 text-xs truncate flex-1">{{ announcement.title }}</h4>
+                    <span class="text-[9px] text-slate-400 ml-2 flex-shrink-0">{{ formatAnnouncementDate(announcement.dates.created) }}</span>
+                  </div>
+                  <div class="flex items-center gap-1 mb-1">
+                    <span class="text-[8px] px-1.5 py-0.5 rounded-full" [ngClass]="getAnnouncementPriorityColor(announcement.priority)">
+                      {{ announcement.priority }}
+                    </span>
+                    <span *ngIf="announcement.isUrgent" class="text-[8px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">
+                      Urgent
+                    </span>
+                    <span class="text-[8px] text-slate-500">{{ announcement.department }}</span>
+                  </div>
+                  <p class="text-[9px] text-slate-600 line-clamp-2">{{ announcement.content }}</p>
+                  <div class="flex items-center justify-between mt-1">
+                    <div class="flex items-center gap-2 text-[8px] text-slate-400">
+                      <span class="flex items-center gap-0.5">
+                        <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        {{ announcement.views || 0 }}
+                      </span>
+                      <span class="flex items-center gap-0.5">
+                        <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                        {{ announcement.likes || 0 }}
+                      </span>
+                    </div>
+                    <span class="text-[8px] px-1 py-0.5 bg-slate-100 text-slate-600 rounded">
+                      {{ announcement.type }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -286,52 +351,152 @@ import { ThemeService } from '../services/theme.service';
         </div>
       </main>
 
-      <!-- Modern Footer -->
-      <footer class="bg-slate-900 text-slate-400 py-12 mt-12">
+      <!-- Modern Footer with Smart City AI Information -->
+      <footer class="bg-gradient-to-r from-blue-900 to-indigo-900 text-white py-12 mt-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <!-- AI Innovation Section -->
+          <div class="mb-10">
+            <div class="flex items-center justify-center mb-6">
+              <div class="h-1 bg-gradient-to-r from-blue-400 to-indigo-400 w-20 rounded-full mr-3"></div>
+              <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-300 to-indigo-300">SmartCity AI Ecosystem</h2>
+              <div class="h-1 bg-gradient-to-r from-indigo-400 to-blue-400 w-20 rounded-full ml-3"></div>
+            </div>
+            <p class="text-center text-blue-200 mb-8 max-w-3xl mx-auto">
+              Powering Harare's future through intelligent systems that improve city services, enhance citizen experience, and enable data-driven governance.
+            </p>
+            
+            <!-- Smart City AI Features -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div class="bg-blue-800 bg-opacity-30 p-4 rounded-lg border border-blue-700 hover:border-blue-500 transition">
+                <div class="flex items-center mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  <h3 class="text-lg font-semibold text-blue-300">Predictive Analytics</h3>
+                </div>
+                <p class="text-sm text-blue-200">Our AI systems analyze patterns in service requests to predict future needs, allowing proactive resource allocation and maintenance scheduling.</p>
+              </div>
+              
+              <div class="bg-blue-800 bg-opacity-30 p-4 rounded-lg border border-blue-700 hover:border-blue-500 transition">
+                <div class="flex items-center mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                  </svg>
+                  <h3 class="text-lg font-semibold text-blue-300">NLP-Powered Complaints</h3>
+                </div>
+                <p class="text-sm text-blue-200">Natural Language Processing automatically categorizes, prioritizes, and routes your complaints to the right department, reducing response times by up to 60%.</p>
+              </div>
+              
+              <div class="bg-blue-800 bg-opacity-30 p-4 rounded-lg border border-blue-700 hover:border-blue-500 transition">
+                <div class="flex items-center mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  <h3 class="text-lg font-semibold text-blue-300">City Resource Mapping</h3>
+                </div>
+                <p class="text-sm text-blue-200">Geospatial AI analyzes city infrastructure data to optimize resource allocation, identify service gaps, and guide urban planning decisions.</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Statistics Bar -->
+          <div class="flex flex-wrap justify-center gap-8 py-6 border-t border-b border-blue-800 mb-10">
+            <div class="text-center">
+              <div class="text-2xl font-bold text-blue-300">93%</div>
+              <div class="text-xs text-blue-200">Issue Resolution Rate</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-blue-300">2.5hr</div>
+              <div class="text-xs text-blue-200">Avg Response Time</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-blue-300">15k+</div>
+              <div class="text-xs text-blue-200">Citizens Engaged</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-blue-300">24/7</div>
+              <div class="text-xs text-blue-200">AI-Powered Support</div>
+            </div>
+          </div>
+          
+          <!-- Regular Footer Content -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <h3 class="text-lg font-semibold text-white mb-4">Contact Us</h3>
               <div class="space-y-2">
                 <p class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 012 2z" />
                   </svg>
-                  <a href="mailto:info&#64;hararecity.gov.zw" class="hover:text-white transition">info&#64;hararecity.gov.zw</a>
+                  <a href="mailto:smart&#64;hararecity.gov.zw" class="hover:text-blue-300 transition">smart&#64;hararecity.gov.zw</a>
                 </p>
                 <p class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
-                  <a href="tel:+263-4-753777" class="hover:text-white transition">+263-4-753777</a>
+                  <a href="tel:+263-4-753777" class="hover:text-blue-300 transition">+263-4-753777</a>
                 </p>
               </div>
             </div>
             <div>
               <h3 class="text-lg font-semibold text-white mb-4">Quick Links</h3>
               <div class="space-y-2">
-                <a href="#" class="block hover:text-white transition">About Us</a>
-                <a href="#" class="block hover:text-white transition">Services</a>
-                <a href="#" class="block hover:text-white transition">FAQ</a>
-                <a href="#" class="block hover:text-white transition">Privacy Policy</a>
+                <a href="#" class="flex items-center hover:text-blue-300 transition">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                  SmartCity Initiative
+                </a>
+                <a href="#" class="flex items-center hover:text-blue-300 transition">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                  Open Data Portal
+                </a>
+                <a href="#" class="flex items-center hover:text-blue-300 transition">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                  Developer API
+                </a>
+                <a href="#" class="flex items-center hover:text-blue-300 transition">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                  Privacy Policy
+                </a>
               </div>
             </div>
             <div>
               <h3 class="text-lg font-semibold text-white mb-4">Emergency Contacts</h3>
               <div class="space-y-2">
                 <p class="flex items-center gap-2">
-                  <span class="text-red-500">Emergency:</span>
-                  <a href="tel:999" class="hover:text-white transition">999</a>
+                  <span class="text-red-400 font-semibold">Emergency:</span>
+                  <a href="tel:999" class="hover:text-blue-300 transition">999</a>
                 </p>
                 <p class="flex items-center gap-2">
-                  <span class="text-yellow-500">Fire Brigade:</span>
-                  <a href="tel:994" class="hover:text-white transition">994</a>
+                  <span class="text-yellow-300 font-semibold">Fire Brigade:</span>
+                  <a href="tel:994" class="hover:text-blue-300 transition">994</a>
+                </p>
+                <p class="flex items-center gap-2">
+                  <span class="text-green-400 font-semibold">Smart City Helpdesk:</span>
+                  <a href="tel:+263-4-700800" class="hover:text-blue-300 transition">+263-4-700800</a>
                 </p>
               </div>
             </div>
           </div>
-          <div class="mt-8 pt-8 border-t border-slate-800 text-center">
-            <p>&copy; 2025 Harare City Portal. All rights reserved.</p>
+          
+          <!-- Copyright with AI Assistant Info -->
+          <div class="mt-8 pt-8 border-t border-blue-800 text-center">
+            <div class="flex justify-center items-center mb-4">
+              <span class="bg-blue-800 rounded-full p-2 mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 012 2z" />
+                </svg>
+              </span>
+              <p class="text-sm text-blue-200">This platform is powered by <span class="font-semibold text-blue-300">CityAI Assistant</span>, processing over 5,000 citizen requests daily with 98% accuracy</p>
+            </div>
+            <p class="text-sm text-blue-300">&copy; 2025 Harare Smart City Portal. All rights reserved.</p>
           </div>
         </div>
       </footer>
@@ -383,12 +548,11 @@ import { ThemeService } from '../services/theme.service';
                 class="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="">Select Department</option>
-                
-                <option value="water-sanitation">Water & Sanitation</option>
-                <option value="roads-transport">Roads & Transport</option>
-               
-                <option value="environment">Waste Management</option>
-                
+                <option value="Water and Sanitation">Water and Sanitation</option>
+                <option value="Roads and Transport">Roads and Transport</option>
+                <option value="Waste Management">Waste Management</option>
+                <option value="General Services">General Services</option>
+                <option value="Other">Other</option>
               </select>
               <div *ngIf="formErrors['department']" class="text-red-500 text-xs mt-0.5">This field is required</div>
             </div>
@@ -404,11 +568,10 @@ import { ThemeService } from '../services/theme.service';
                 required
                 class="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500"
               >
-                <option value="">Select Priority</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Urgent">Urgent</option>
               </select>
               <div *ngIf="formErrors['priority']" class="text-red-500 text-xs mt-0.5">This field is required</div>
             </div>
@@ -436,9 +599,11 @@ import { ThemeService } from '../services/theme.service';
                 id="location"
                 [(ngModel)]="locationAddress" 
                 name="location"
+                required
                 class="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500"
                 placeholder="Street address or landmark"
               >
+              <div *ngIf="formErrors['location']" class="text-red-500 text-xs mt-0.5">This field is required</div>
             </div>
 
             <!-- Submit Button -->
@@ -476,6 +641,7 @@ export class GeneralUserDashboardComponent implements OnInit {
   // User data
   userName: string = '';
   email: string = '';
+  isDarkMode: boolean = false;
   
   // Complaint stats
   complaints: Complaint[] = [];
@@ -502,14 +668,36 @@ export class GeneralUserDashboardComponent implements OnInit {
   // Activity and notifications
   activityFeed: any[] = [];
   notifications: any[] = [];
-  announcements: any[] = [];
+  announcements: Announcement[] = [];
 
   // New complaint form
-  newComplaint: Partial<Complaint> = {};
+  newComplaint: {
+    title: string;
+    description: string;
+    department: string;
+    category: string;
+    location: string;
+    priority: string;
+  } = {
+    title: '',
+    description: '',
+    department: '',
+    category: '',
+    location: '',
+    priority: 'Medium'
+  };
   showComplaintModal: boolean = false;
   submittingComplaint: boolean = false;
   formErrors: { [key: string]: boolean } = {};
   locationAddress: string = '';
+
+  // Stats
+  stats = {
+    totalComplaints: 0,
+    pendingComplaints: 0,
+    resolvedComplaints: 0,
+    inProgressComplaints: 0
+  };
 
   // Loading and error states
   loading: boolean = true;
@@ -517,16 +705,15 @@ export class GeneralUserDashboardComponent implements OnInit {
 
   // Additional properties
   totalUsersCount: number = 0;
-  isDarkMode: boolean = false;
 
   constructor(
     private firebaseService: FirebaseService,
-    private notificationService: NotificationService,
     private authService: AuthService,
     private router: Router,
     private cdr: ChangeDetectorRef,
     private userService: UserService,
-    private themeService: ThemeService
+    private themeService: ThemeService,
+    private announcementService: AnnouncementService
   ) {}
 
   async ngOnInit() {
@@ -534,6 +721,7 @@ export class GeneralUserDashboardComponent implements OnInit {
     await this.loadComplaints();
     await this.loadAnnouncements();
     this.updateComplaintStats();
+    this.loadThemePreference();
     this.activityFeed = [
       { message: 'Complaint #C-7829 updated', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) },
       { message: 'Complaint #C-7651 resolved', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000) },
@@ -541,17 +729,21 @@ export class GeneralUserDashboardComponent implements OnInit {
     ];
     await this.loadAnnouncements();
     
-    // Subscribe to dark mode changes
-    this.themeService.isDarkMode$.subscribe(isDark => {
-      this.isDarkMode = isDark;
-      this.cdr.detectChanges();
-    });
-    
     // Subscribe to total user count
     this.userService.getTotalUserCount().subscribe(count => {
       this.totalUsersCount = count;
       this.cdr.detectChanges();
     });
+  }
+
+  loadThemePreference() {
+    const savedTheme = localStorage.getItem('darkMode');
+    this.isDarkMode = savedTheme === 'true';
+  }
+
+  toggleDarkMode() {
+    this.isDarkMode = !this.isDarkMode;
+    localStorage.setItem('darkMode', this.isDarkMode.toString());
   }
 
   async getCurrentUserInfo() {
@@ -578,8 +770,14 @@ export class GeneralUserDashboardComponent implements OnInit {
         return;
       }
       const complaints = await this.firebaseService.getCollection('complaints');
-      this.complaints = complaints.filter((complaint: any) => complaint.submittedBy?.email === currentUser.email)
-        .map((complaint: any) => ({
+      console.log('Total complaints fetched:', complaints.length);
+      const currentUserEmail = currentUser.email?.toLowerCase() || '';
+      
+      this.complaints = complaints.filter((complaint: any) => {
+        const submitterEmail = complaint.submittedBy?.email?.toLowerCase() || '';
+        const isUsersComplaint = submitterEmail === currentUserEmail;
+        return isUsersComplaint;
+      }).map((complaint: any) => ({
           id: complaint.id || '',
           title: complaint.title || 'Untitled',
           description: complaint.description || '',
@@ -619,370 +817,214 @@ export class GeneralUserDashboardComponent implements OnInit {
     }
   }
 
+  // Load announcements for the user
   async loadAnnouncements() {
     try {
-      // Get announcements from Firebase
-      const announcementsData = await this.firebaseService.getCollection('announcements');
-      if (Array.isArray(announcementsData) && announcementsData.length > 0) {
-        this.announcements = announcementsData
-          .map((announcement: any) => ({
-            id: announcement.id || '',
-            title: announcement.title || '',
-            message: announcement.message || '',
-            date: announcement.date || new Date().toISOString(),
-            type: announcement.type || 'info',
-            postedBy: announcement.postedBy || '',
-            department: announcement.department || ''
-          }))
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort by date, newest first
-      } else {
-        this.announcements = []; // Empty array if no announcements found
-      }
+      const userData = this.authService.getCurrentUserData();
+      const userRole = userData?.role || 'generaluser';
+      const userDepartment = userData?.department;
+      
+      this.announcementService.getAnnouncementsForUser(userRole, userDepartment).subscribe(
+        announcements => {
+          this.announcements = announcements.slice(0, 5); // Show only latest 5
+          this.cdr.detectChanges();
+        }
+      );
     } catch (error) {
       console.error('Error loading announcements:', error);
-      this.announcements = []; // Reset to empty array on error
     }
   }
 
-  updateComplaintStats() {
-    this.totalComplaints = this.complaints.length;
-    this.resolvedComplaints = this.complaints.filter(c => this.getComplaintStatus(c) === 'Resolved').length;
-    this.pendingComplaints = this.complaints.filter(c => {
-      const status = this.getComplaintStatus(c);
-      return status === 'Pending' || status === 'In Progress';
-    }).length;
-    this.overdueComplaints = this.complaints.filter(c => this.getComplaintStatus(c) === 'Overdue').length;
+  // Format date for announcements
+  formatAnnouncementDate(dateString: string): string {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffHours < 1) {
+      return 'Just now';
+    } else if (diffHours < 24) {
+      return `${diffHours}h ago`;
+    } else if (diffDays < 7) {
+      return `${diffDays}d ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
   }
 
-  toggleComplaintsView() {
-    this.showAllComplaints = !this.showAllComplaints;
+  // Get announcement priority color
+  getAnnouncementPriorityColor(priority: string): string {
+    switch (priority) {
+      case 'Critical':
+        return 'text-red-600 bg-red-100';
+      case 'High':
+        return 'text-orange-600 bg-orange-100';
+      case 'Medium':
+        return 'text-blue-600 bg-blue-100';
+      case 'Low':
+        return 'text-green-600 bg-green-100';
+      default:
+        return 'text-gray-600 bg-gray-100';
+    }
   }
-  openComplaintModal() {
-    // Reset the new complaint object
-    this.newComplaint = {
-      title: '',
-      description: '',
-      department: 'other',
-      category: '',
-      location: {
-        address: ''
-      },
-      priority: 'Medium',
-      status: 'New',
-      dates: {
-        created: new Date().toISOString(),
-        updated: new Date().toISOString()
-      }
+
+  // View announcement details and increment view count
+  async viewAnnouncement(announcement: Announcement) {
+    if (announcement.id) {
+      await this.announcementService.incrementViewCount(announcement.id);
+    }
+    // You can implement a modal or navigation to full announcement view here
+    console.log('Viewing announcement:', announcement.title);
+  }
+
+  // Update complaint statistics
+  updateComplaintStats() {
+    if (!this.complaints || this.complaints.length === 0) {
+      this.stats = {
+        totalComplaints: 0,
+        pendingComplaints: 0,
+        resolvedComplaints: 0,
+        inProgressComplaints: 0
+      };
+      return;
+    }
+
+    this.stats = {
+      totalComplaints: this.complaints.length,
+      pendingComplaints: this.complaints.filter(c => c.status === 'PendingReview' || c.status === 'New').length,
+      resolvedComplaints: this.complaints.filter(c => c.status === 'Resolved').length,
+      inProgressComplaints: this.complaints.filter(c => c.status === 'InProgress').length
     };
-    // Show the modal
+  }
+
+  // Logout user
+  async logout() {
+    try {
+      await this.authService.logout();
+      this.router.navigate(['/']);
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  }
+
+  // Open complaint modal
+  openComplaintModal() {
     this.showComplaintModal = true;
   }
 
+  // Close complaint modal
   closeComplaintModal() {
     this.showComplaintModal = false;
-    this.cdr.detectChanges();
   }
 
-  async submitComplaint() {
-    this.error = null; // Clear any previous errors
-    try {
-      this.submittingComplaint = true; // Start the submission process
-      this.formErrors = {}; // Reset form errors
-      
-      // Basic client-side validation
-      if (!this.newComplaint.title || this.newComplaint.title.trim() === '') {
-        this.formErrors['title'] = true;
-      }
-      if (!this.newComplaint.description || this.newComplaint.description.trim() === '') {
-        this.formErrors['description'] = true;
-      }
-      if (!this.locationAddress || this.locationAddress.trim() === '') {
-        this.formErrors['location'] = true;
-      }
-      
-      // If there are validation errors, stop the submission
-      if (Object.keys(this.formErrors).length > 0) {
-        this.submittingComplaint = false;
-        this.cdr.detectChanges();
-        return;
-      }
-      
-      console.log('Preparing complaint submission...');
-
-      // Add user information
-      const currentUser = this.authService.auth.currentUser;
-      this.newComplaint.submittedBy = {
-        userId: currentUser?.uid || '',
-        name: this.userName,
-        contact: '',
-        email: currentUser?.email || ''
-      };
-
-      // Set dates
-      const now = new Date().toISOString();
-      this.newComplaint.dates = {
-        created: now,
-        updated: now
-      };
-
-      // Ensure location is properly set
-      if (!this.newComplaint.location) {
-        this.newComplaint.location = { address: this.locationAddress };
-      } else {
-        this.newComplaint.location.address = this.locationAddress;
-      }
-
-      // Set other defaults
-      this.newComplaint.isAnonymous = false;
-      this.newComplaint.isPublic = true;
-      this.newComplaint.tags = [];
-      this.newComplaint.votes = 0;
-      
-      // Ensure the updates array is initialized
-      this.newComplaint.updates = [];      try {
-        console.log('Submitting complaint to Firebase...');
-        await this.firebaseService.addDocument('complaints', this.newComplaint);
-        console.log('Complaint submitted successfully');
-        
-        // Reset submit button state first
-        this.submittingComplaint = false;
-        this.cdr.detectChanges();
-        
-        // Close the modal
-        this.showComplaintModal = false;
-        this.cdr.detectChanges();
-        
-        // Then show a success notification - this ensures the toast appears after the modal is gone
-        setTimeout(() => {
-          // Use both methods for maximum compatibility
-          this.notificationService.showSuccess('Complaint has been successfully sent');
-          console.log('Success notification dispatched');
-        }, 100);
-        
-        // Refresh complaints in the background
-        this.refreshComplaints();
-      } catch (error: any) {        console.error('Error submitting complaint:', error);
-        this.error = `Failed to submit: ${error.message || 'Unknown error'}`;
-        
-        // Use both notification methods for redundancy
-        this.notificationService.showError(`Failed to submit complaint: ${error.message || 'Unknown error'}`);
-        this.notificationService.error(`${error.message || 'Unknown error'}`, 'Submission Failed');
-        
-        this.submittingComplaint = false;
-        this.cdr.detectChanges();
-        throw error; // Re-throw to be handled by outer catch
-      }
-    } catch (error: any) {
-      console.error('Error in complaint submission process:', error);
-      this.error = error.message || 'Failed to submit complaint. Please try again.';
-      this.submittingComplaint = false;
-      this.cdr.detectChanges();
-    } finally {
-      // This will be called when submission finishes, but refreshComplaints may still be ongoing
-      // Set a safety timeout to ensure submitting flag is reset in case of any unexpected issues
-      setTimeout(() => {
-        if (this.submittingComplaint) {
-          console.log('Submission state was still loading after timeout, forcing reset');
-          this.submittingComplaint = false;
-          this.cdr.detectChanges();
-        }
-      }, 3000); // Force UI to update after 3 seconds if stuck
-    }
-  }
-  
-  // Special method to ensure proper notification display
-  async submitAndNotify() {
-    this.submittingComplaint = true;
-    this.cdr.detectChanges();
-    this.formErrors = {};
-    if (!this.newComplaint.title || this.newComplaint.title.trim() === '') {
-      this.formErrors['title'] = true;
-    }
-    if (!this.newComplaint.description || this.newComplaint.description.trim() === '') {
-      this.formErrors['description'] = true;
-    }
-    if (!this.locationAddress || this.locationAddress.trim() === '') {
-      this.formErrors['location'] = true;
-    }
-    if (Object.keys(this.formErrors).length > 0) {
-      this.submittingComplaint = false;
-      this.cdr.detectChanges();
-      return;
-    }
-    const now = new Date().toISOString();
-    this.newComplaint.submittedBy = {
-      userId: 'user123',
-      name: 'natasha',
-      contact: '',
-      email: ''
-    };
-    this.newComplaint.dates = { created: now, updated: now };
-    this.newComplaint.isAnonymous = false;
-    this.newComplaint.isPublic = true;
-    this.newComplaint.tags = [];
-    this.newComplaint.votes = 0;
-    this.newComplaint.updates = [];
-    try {
-      await this.firebaseService.addDocument('complaints', this.newComplaint);
-      this.notificationService.show('Complaint submitted successfully!', 'success', 5000);
-      this.submittingComplaint = false;
-      this.cdr.detectChanges();
-      setTimeout(() => {
-        this.showComplaintModal = false;
-        this.cdr.detectChanges();
-      }, 3000);
-      this.refreshComplaints();
-    } catch (error) {
-      this.submittingComplaint = false;
-      this.cdr.detectChanges();
-      const errMsg = (error && typeof error === 'object' && 'message' in error) ? (error as any).message : String(error);
-      this.notificationService.showError(`Failed to submit complaint: ${errMsg || 'Unknown error'}`);
-      this.error = `Failed to submit: ${errMsg || 'Unknown error'}`;
-    }
-  }
-  
-  // Separate method to refresh complaints to avoid blocking UI
+  // Refresh complaints
   async refreshComplaints() {
-    try {
-      this.loading = true;
-      this.cdr.detectChanges();
-      const allComplaints = await this.firebaseService.getCollection('complaints');
-      if (Array.isArray(allComplaints)) {
-        this.complaints = allComplaints
-          .filter((c: any) => c && c.submittedBy?.name === 'natasha')
-          .map((c: any) => ({
-            id: c.id || '',
-            title: c.title || 'Untitled',
-            description: c.description || '',
-            department: c.department || 'other',
-            category: c.category || '',
-            location: c.location || { address: '' },
-            priority: c.priority || 'Low',
-            status: c.status || 'New',
-            submittedBy: c.submittedBy || { userId: '', name: '', contact: '', email: '' },
-            assignedTo: c.assignedTo || undefined,
-            dates: c.dates || { created: '', updated: '' },
-            mediaUrls: c.mediaUrls || [],
-            updates: c.updates || [],
-            aiAnalysis: c.aiAnalysis || undefined,
-            publicId: c.publicId || '',
-            isAnonymous: c.isAnonymous || false,
-            isPublic: c.isPublic ?? false,
-            tags: c.tags || [],
-            votes: c.votes || 0
-          }));
-          
-        // Sort complaints by creation date (newest first)
-        this.complaints.sort((a, b) => {
-          const dateA = new Date(a.dates.created).getTime();
-          const dateB = new Date(b.dates.created).getTime();
-          return dateB - dateA; // Descending order (newest first)
-        });
-      }
-    } catch (error: any) {
-      console.error('Error refreshing complaints:', error);
-      this.error = error.message || 'Failed to refresh complaints.';
-    } finally {
-      this.loading = false;
-      this.cdr.detectChanges();
-    }
+    this.loading = true;
+    await this.loadComplaints();
   }
 
+  // Get complaint status with proper formatting
   getComplaintStatus(complaint: Complaint): string {
-    const created = new Date(complaint.dates.created).getTime();
-    const now = Date.now();
-    const fiveMinutes = 5 * 60 * 1000;
-    if (complaint.status === 'New' && now - created > fiveMinutes) {
-      return 'Pending';
+    if (!complaint || !complaint.status) {
+      return 'Unknown';
     }
-    if (complaint.status === 'Resolved') return 'Resolved';
-    if (complaint.status === 'InProgress') return 'In Progress';
-    if (complaint.status === 'PendingReview') return 'Pending';
     return complaint.status;
   }
 
-  // Compute a fake resolution rate based on status for UI purposes
-  getResolutionRate(complaint: Complaint): number {
-    const status = this.getComplaintStatus(complaint);
-    if (status === 'Resolved') return 100;
-    if (status === 'In Progress') return 60;
-    if (status === 'Pending') return 30;
-    return 10;
-  }
-
-  logout() {
-    this.authService.logout();
-    this.router.navigate(['/']);
-  }
-
-
-
+  // Get progress percentage for a complaint
   getProgress(complaint: Complaint): number {
-    // Example: Resolved = 100, In Progress = 60, New = 20, Overdue = 80
-    const status = this.getComplaintStatus(complaint);
-    if (status === 'Resolved') return 100;
-    if (status === 'In Progress') return 60;
-    if (status === 'Overdue') return 80;
-    return 20;
+    if (!complaint || !complaint.status) {
+      return 0;
+    }
+    
+    switch (complaint.status) {
+      case 'New':
+        return 10;
+      case 'PendingReview':
+        return 25;
+      case 'InProgress':
+        return 60;
+      case 'Resolved':
+        return 100;
+      case 'Closed':
+        return 100;
+      default:
+        return 0;
+    }
   }
 
-  // Administrative action methods
-  manageUsers() {
-    // Implement user management logic
-    console.log('Managing users...');
-  }
+  // Submit new complaint
+  async submitComplaint() {
+    if (!this.newComplaint.title || !this.newComplaint.description || !this.newComplaint.department) {
+      this.error = 'Please fill in all required fields';
+      return;
+    }
 
-  manageDepartments() {
-    // Implement department management logic
-    console.log('Managing departments...');
-  }
+    try {
+      this.submittingComplaint = true;
+      const currentUser = this.authService.auth.currentUser;
+      
+      if (!currentUser) {
+        this.error = 'User not authenticated';
+        this.submittingComplaint = false;
+        return;
+      }
 
-  viewAnalytics() {
-    // Implement analytics view logic
-    console.log('Viewing analytics...');
-  }
+      const userData = this.authService.getCurrentUserData();
+      
+      const complaint: Partial<Complaint> = {
+        title: this.newComplaint.title,
+        description: this.newComplaint.description,
+        department: this.newComplaint.department as any,
+        category: this.newComplaint.category || 'General',
+        location: {
+          address: this.newComplaint.location || ''
+        },
+        priority: this.newComplaint.priority as any,
+        status: 'New',
+        submittedBy: {
+          userId: currentUser.uid,
+          name: userData?.name || currentUser.displayName || 'Anonymous',
+          contact: '',
+          email: currentUser.email || ''
+        },
+        dates: {
+          created: new Date().toISOString(),
+          updated: new Date().toISOString()
+        },
+        mediaUrls: [],
+        updates: [],
+        tags: [],
+        votes: 0,
+        isAnonymous: false,
+        isPublic: true
+      };
 
-  manageRoles() {
-    // Implement role management logic
-    console.log('Managing roles...');
-  }
-
-  viewReports() {
-    // Implement reports view logic
-    console.log('Viewing reports...');
-  }
-
-  systemSettings() {
-    // Implement settings management logic
-    console.log('Managing system settings...');
-  }
-
-  toggleDarkMode() {
-    this.themeService.toggleDarkMode();
-  }
-
-  getPercentageChange(current: number, previous: number): number {
-    return Math.round(((current - previous) / previous) * 100);
-  }
-
-  getProgressPercentage(value: number): number {
-    return Math.min((value / 200) * 100, 100);
-  }
-
-  getResolvedPercentage(): number {
-    return Math.round((this.resolvedComplaints / this.totalComplaints) * 100);
-  }
-
-  getPendingPercentage(): number {
-    return Math.round((this.pendingComplaints / this.totalComplaints) * 100);
-  }
-
-  getResponseTimeScore(): number {
-    // Lower is better for response time, so we invert the percentage
-    return Math.max(100 - (this.averageResponseTime / 48) * 100, 0);
-  }
-
-  getEfficiencyPercentage(): number {
-    return (this.efficiencyScore / 10) * 100;
+      const complaintId = await this.firebaseService.addDocument('complaints', complaint);
+      
+      // Reset form
+      this.newComplaint = {
+        title: '',
+        description: '',
+        department: '',
+        category: '',
+        location: '',
+        priority: 'Medium'
+      };
+      
+      this.closeComplaintModal();
+      await this.refreshComplaints();
+      
+      // Show success message
+      console.log('Complaint submitted successfully with ID:', complaintId);
+      
+    } catch (error) {
+      console.error('Error submitting complaint:', error);
+      this.error = 'Failed to submit complaint. Please try again.';
+    } finally {
+      this.submittingComplaint = false;
+    }
   }
 }

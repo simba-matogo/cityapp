@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { FirebaseService } from './firebase.service';
 import { AuthService } from './auth.service';
 import { addDoc, collection, serverTimestamp, query, orderBy, limit, deleteDoc, getDocs, QueryDocumentSnapshot, DocumentData, QuerySnapshot } from 'firebase/firestore';
@@ -12,7 +12,8 @@ export class ActivityService {
 
   constructor(
     private firebaseService: FirebaseService,
-    private authService: AuthService
+    private authService: AuthService,
+    private ngZone: NgZone
   ) {}
 
   /**
@@ -29,7 +30,7 @@ export class ActivityService {
     severity: 'info' | 'warning' | 'error' = 'info'
   ): Promise<void> {
     try {
-      const currentUser = this.authService.auth.currentUser;
+      const currentUser = this.authService.getCurrentUser();
       const userId = currentUser?.uid || 'system';
       const userEmail = currentUser?.email || 'system';
       
@@ -44,7 +45,7 @@ export class ActivityService {
         message: this.formatActivityMessage(action, details, targetId)
       };
       
-      await addDoc(collection(this.firebaseService.firestore, this.COLLECTION_NAME), activityData);
+      await addDoc(collection(this.firebaseService.getDb(), this.COLLECTION_NAME), activityData);
     } catch (error) {
       console.error('Error logging activity:', error);
     }
@@ -58,7 +59,7 @@ export class ActivityService {
   async getRecentActivities(count: number = 20): Promise<any[]> {
     try {
       const activitiesQuery = query(
-        collection(this.firebaseService.firestore, this.COLLECTION_NAME),
+        collection(this.firebaseService.getDb(), this.COLLECTION_NAME),
         orderBy('timestamp', 'desc'),
         limit(count)
       );
@@ -82,7 +83,7 @@ export class ActivityService {
    */
   listenToActivities(callback: (activities: any[]) => void, count: number = 20): () => void {
     const activitiesQuery = query(
-      collection(this.firebaseService.firestore, this.COLLECTION_NAME),
+      collection(this.firebaseService.getDb(), this.COLLECTION_NAME),
       orderBy('timestamp', 'desc'),
       limit(count)
     );
@@ -108,7 +109,7 @@ export class ActivityService {
       
       // Get all activities except the one we just created
       const activitiesQuery = query(
-        collection(this.firebaseService.firestore, this.COLLECTION_NAME),
+        collection(this.firebaseService.getDb(), this.COLLECTION_NAME),
         orderBy('timestamp', 'asc')
       );
       
@@ -132,7 +133,7 @@ export class ActivityService {
    * Formats an activity message for display
    */
   private formatActivityMessage(action: string, details: string, targetId: string): string {
-    const user = this.authService.auth.currentUser;
+    const user = this.authService.getCurrentUser();
     const userName = user?.displayName || user?.email?.split('@')[0] || 'A user';
     
     switch (action) {

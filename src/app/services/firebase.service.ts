@@ -1,25 +1,23 @@
 import { Injectable } from '@angular/core';
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, 
   collection, 
   getDocs, 
-  addDoc, 
-  doc,
   getDoc,
+  addDoc, 
+  doc, 
   updateDoc, 
   deleteDoc, 
   query, 
   where,
+  onSnapshot,
+  enableIndexedDbPersistence,
   disableNetwork,
   enableNetwork,
   connectFirestoreEmulator,
-  initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
-  QuerySnapshot,
-  DocumentData,
-  onSnapshot
+  Firestore,
+  arrayUnion
 } from 'firebase/firestore';
 import { environment } from '../../environments/environment';
 import { BehaviorSubject } from 'rxjs';
@@ -29,57 +27,29 @@ import { retryWithBackoff, timeoutPromise } from '../utils/retry-with-backoff';
   providedIn: 'root'
 })
 export class FirebaseService {
-  private static instance: FirebaseService;
-  private app: any;
-  private db: any;
+  private app = initializeApp(environment.firebase);
+  private db = getFirestore(this.app);
   
   // Connection state observable
   private _isConnected = new BehaviorSubject<boolean>(true);
   public isConnected$ = this._isConnected.asObservable();
 
   constructor() {
-    if (FirebaseService.instance) {
-      return FirebaseService.instance;
-    }
-    
-    this.initializeFirebase();
-    FirebaseService.instance = this;
-  }
-
-  private initializeFirebase() {
-    try {
-      // Check if Firebase app is already initialized
-      const apps = getApps();
-      if (apps.length === 0) {
-        this.app = initializeApp(environment.firebase);
-        console.log('Firebase app initialized');
-      } else {
-        this.app = apps[0];
-        console.log('Using existing Firebase app');
-      }
-
-      // Check if Firestore is already initialized
-      try {
-        this.db = getFirestore(this.app);
-        console.log('Using existing Firestore instance');
-      } catch (error) {
-        // If getFirestore fails, initialize a new one
-        this.db = initializeFirestore(this.app, {
-          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-        });
-        console.log('Firestore initialized with persistence');
-      }
-
-      this.setupOfflinePersistence();
-    } catch (error) {
-      console.error('Error initializing Firebase:', error);
-    }
+    console.log('Firebase initialized successfully');
+    this.setupOfflinePersistence();
   }
 
   // Enable offline persistence
   private async setupOfflinePersistence() {
     try {
-      // Offline persistence is already configured during Firestore initialization
+      // Enable offline persistence
+      await enableIndexedDbPersistence(this.db).catch((err) => {
+        if (err.code === 'failed-precondition') {
+          console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+        } else if (err.code === 'unimplemented') {
+          console.warn('The current browser does not support all of the features required to enable persistence');
+        }
+      });
 
       // If you want to use emulators, uncomment this and add useEmulators: true to environment.ts
       // if (!environment.production && (environment as any).useEmulators) {
@@ -110,6 +80,7 @@ export class FirebaseService {
       console.error('Error enabling network:', error);
     }
   }
+
   // Get all documents from a collection with retry and timeout
   async getCollection(collectionName: string) {
     try {
@@ -129,21 +100,33 @@ export class FirebaseService {
           ...doc.data()
         }));
       }, 3);
-    } catch (error: any) {
-      // Enhanced error logging with HTTP status codes if available
-      if (error.code === 'permission-denied') {
-        console.error(`Access denied to collection ${collectionName}. Check Firestore rules.`, error);
-      } else if (error.name === 'FirebaseError' && error.code) {
-        console.error(`Firebase error accessing collection ${collectionName}: [${error.code}]`, error);
-      } else if (error.status === 400) {
-        console.error(`Bad request error accessing collection ${collectionName}. Check Firebase configuration.`, error);
-      } else {
-        console.error(`Error getting collection ${collectionName}:`, error);
-      }
+    } catch (error) {
+      console.error(`Error getting collection ${collectionName}:`, error);
       
       // If we're in offline mode and have cached data, it will still work
       // If completely disconnected with no cache, return empty array
       return [];
+    }
+  }
+
+  // Get a single document from a collection with retry and timeout
+  async getDocument(collectionName: string, documentId: string) {
+    try {
+      const docRef = doc(this.db, collectionName, documentId);
+      const docSnapshotPromise = getDoc(docRef);
+      
+      // Apply timeout to prevent hanging
+      const docSnapshot = await timeoutPromise(docSnapshotPromise, 10000);
+      
+      if (docSnapshot.exists()) {
+        return { id: docSnapshot.id, ...docSnapshot.data() };
+      } else {
+        console.log(`No document found with id: ${documentId} in collection: ${collectionName}`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`Error getting document ${documentId} from collection ${collectionName}:`, error);
+      return null;
     }
   }
 
@@ -158,7 +141,7 @@ export class FirebaseService {
           'Adding document timed out'
         );
         return docRef.id;
-      }, 4); // Increased retry count for better reliability
+      }, 2);
     } catch (error) {
       console.error(`Error adding document to ${collectionName}:`, error);
       throw error;
@@ -225,38 +208,6 @@ export class FirebaseService {
     }
   }
 
-  // Get a single document by ID
-  async getDocument(collectionName: string, documentId: string) {
-    try {
-      const docRef = doc(this.db, collectionName, documentId);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() };
-      } else {
-        throw new Error('Document not found');
-      }
-    } catch (error) {
-      console.error('Error getting document:', error);
-      throw error;
-    }
-  }
-
-  // Expose the Firestore instance
-  get firestore() {
-    return this.db;
-  }
-  
-  /**
-   * Sets up a realtime listener for a Firestore query
-   * @param query The Firestore query to listen to
-   * @param callback Function to call with updated data
-   * @returns Unsubscribe function
-   */
-  listenToQuery(firestoreQuery: any, callback: (snapshot: QuerySnapshot<DocumentData>) => void): () => void {
-    return onSnapshot(firestoreQuery, callback);
-  }
-
   // Get Firestore reference (for advanced operations)
   getDb() {
     return this.db;
@@ -266,5 +217,27 @@ export class FirebaseService {
   getConnectionStatus() {
     return this._isConnected.value;
   }
-}
 
+  // Listen to real-time updates on a query
+  listenToQuery(q: any, callback: (snapshot: any) => void): () => void {
+    try {
+      return onSnapshot(q, callback, (error) => {
+        console.error('Error in query listener:', error);
+        this._isConnected.next(false);
+      });
+    } catch (error) {
+      console.error('Error setting up query listener:', error);
+      return () => {}; // Return empty unsubscribe function
+    }
+  }
+
+  // Get Firestore instance
+  getFirestore(): Firestore {
+    return this.db;
+  }
+
+  // Get arrayUnion function for use in services
+  getArrayUnion(data: any) {
+    return arrayUnion(data);
+  }
+}

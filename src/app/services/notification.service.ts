@@ -1,125 +1,176 @@
-import { Injectable } from '@angular/core';
-import { Observable, Subject } from 'rxjs';
-import { v4 as uuidv4 } from 'uuid';
+import { Injectable, NgZone } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 
-export interface ToastNotification {
+export interface Notification {
   id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
   message: string;
-  type: 'success' | 'error' | 'info' | 'warning';
-  duration: number;
+  duration?: number;
+  timestamp: Date;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class NotificationService {
-  private notification$ = new Subject<ToastNotification>();
-  private activeNotifications = new Map<string, ToastNotification>();
-  
-  constructor() {
-    // Ensure we don't trigger browser notification permissions
-    console.log('NotificationService initialized - using custom toast system only');
-  }
-  
-  // Method to show a success toast with enhanced formatting
-  showSuccess(message: string, duration: number = 5000): void {
-    this.show(message, 'success', duration);
-  }
-  
-  // Method to show an error toast with enhanced formatting
-  showError(message: string, duration: number = 6000): void {
-    this.show(message, 'error', duration);
-  }
-  
-  // Method to show an info toast with enhanced formatting
-  showInfo(message: string, duration: number = 4000): void {
-    this.show(message, 'info', duration);
-  }
-  
-  // Method to show a warning toast with enhanced formatting
-  showWarning(message: string, duration: number = 4000): void {
-    this.show(message, 'warning', duration);
-  }
-  
-  // Compatibility methods for existing code
-  success(message: string, title?: string, duration: number = 5000): string {
-    const fullMessage = title ? `${title}: ${message}` : message;
-    return this.show(fullMessage, 'success', duration);
-  }
-  
-  error(message: string, title?: string, duration: number = 5000): string {
-    const fullMessage = title ? `${title}: ${message}` : message;
-    return this.show(fullMessage, 'error', duration);
-  }
-  
-  info(message: string, title?: string, duration: number = 5000): string {
-    const fullMessage = title ? `${title}: ${message}` : message;
-    return this.show(fullMessage, 'info', duration);
-  }
-  
-  warning(message: string, title?: string, duration: number = 5000): string {
-    const fullMessage = title ? `${title}: ${message}` : message;
-    return this.show(fullMessage, 'warning', duration);
-  }
-  
-  dismiss(id: string): void {
-    if (this.activeNotifications.has(id)) {
-      this.activeNotifications.delete(id);
-      // Notify listeners to remove this notification
-      this.notification$.next({
-        id,
-        message: '',
-        type: 'info',
-        duration: 0
-      });
+  private notificationsSubject = new BehaviorSubject<Notification[]>([]);
+  public notifications$ = this.notificationsSubject.asObservable();
+
+  constructor(private ngZone: NgZone) {}
+
+  /**
+   * Show a success notification
+   */
+  showSuccess(messageOrTitle: string, messageOrDuration?: string | number, duration: number = 5000): string {
+    if (typeof messageOrDuration === 'number') {
+      return this.addNotification('success', messageOrTitle, messageOrDuration);
+    } else if (typeof messageOrDuration === 'string') {
+      const message = `${messageOrTitle}\n${messageOrDuration}`;
+      return this.addNotification('success', message, duration);
     }
-  }  // Generic method to show any type of toast
-  show(message: string, type: 'success' | 'error' | 'info' | 'warning', duration: number = 5000): string {
-    console.log('NotificationService.show called with:', { message, type, duration });
-    const id = uuidv4();
-    const notification = {
-      id,
-      message,
+    return this.addNotification('success', messageOrTitle, duration);
+  }
+
+  /**
+   * Show an error notification
+   */
+  showError(messageOrTitle: string, messageOrDuration?: string | number, duration: number = 7000): string {
+    if (typeof messageOrDuration === 'number') {
+      return this.addNotification('error', messageOrTitle, messageOrDuration);
+    } else if (typeof messageOrDuration === 'string') {
+      const message = `${messageOrTitle}\n${messageOrDuration}`;
+      return this.addNotification('error', message, duration);
+    }
+    return this.addNotification('error', messageOrTitle, duration);
+  }
+
+  /**
+   * Show a warning notification
+   */
+  showWarning(messageOrTitle: string, messageOrDuration?: string | number, duration: number = 6000): string {
+    if (typeof messageOrDuration === 'number') {
+      return this.addNotification('warning', messageOrTitle, messageOrDuration);
+    } else if (typeof messageOrDuration === 'string') {
+      const message = `${messageOrTitle}\n${messageOrDuration}`;
+      return this.addNotification('warning', message, duration);
+    }
+    return this.addNotification('warning', messageOrTitle, duration);
+  }
+
+  /**
+   * Show an info notification
+   */
+  showInfo(messageOrTitle: string, messageOrDuration?: string | number, duration: number = 5000): string {
+    if (typeof messageOrDuration === 'number') {
+      return this.addNotification('info', messageOrTitle, messageOrDuration);
+    } else if (typeof messageOrDuration === 'string') {
+      const message = `${messageOrTitle}\n${messageOrDuration}`;
+      return this.addNotification('info', message, duration);
+    }
+    return this.addNotification('info', messageOrTitle, duration);
+  }
+
+  /**
+   * Show notification with flexible parameters
+   */
+  show(message: string, type?: string, duration?: number): string {
+    // Handle different call signatures
+    if (typeof type === 'number') {
+      // show(message, duration)
+      return this.showInfo(message, type);
+    } else if (type === 'success') {
+      return this.showSuccess(message, duration || 5000);
+    } else if (type === 'error') {
+      return this.showError(message, duration || 7000);
+    } else if (type === 'warning') {
+      return this.showWarning(message, duration || 6000);
+    } else {
+      // Default to info
+      return this.showInfo(message, duration || 5000);
+    }
+  }
+
+  /**
+   * Show info notification (alternative signature)
+   */
+  info(title: string, message?: string, duration: number = 5000): string {
+    const fullMessage = message ? `${title}\n${message}` : title;
+    return this.showInfo(fullMessage, duration);
+  }
+
+  /**
+   * Show success notification (alternative signature)
+   */
+  success(title: string, message?: string, duration: number = 5000): string {
+    const fullMessage = message ? `${title}\n${message}` : title;
+    return this.showSuccess(fullMessage, duration);
+  }
+
+  /**
+   * Add a notification to the list
+   */
+  private addNotification(type: Notification['type'], message: string, duration: number): string {
+    const notification: Notification = {
+      id: this.generateId(),
       type,
-      duration
+      message,
+      duration,
+      timestamp: new Date()
     };
-    
-    this.activeNotifications.set(id, notification);
-    console.log('Emitting notification:', notification);
-    this.notification$.next({...notification});
-    
-    // Auto-dismiss after duration
-    setTimeout(() => {
-      this.dismiss(id);
-    }, duration);
-    
-    return id;
+
+    // Use NgZone to avoid ExpressionChangedAfterItHasBeenCheckedError
+    this.ngZone.run(() => {
+      const currentNotifications = this.notificationsSubject.value;
+      this.notificationsSubject.next([...currentNotifications, notification]);
+    });
+
+    // Auto-remove notification after duration
+    if (duration > 0) {
+      setTimeout(() => {
+        this.removeNotification(notification.id);
+      }, duration);
+    }
+
+    return notification.id;
   }
-  
-  // Observable to listen to notifications
-  getNotifications(): Observable<ToastNotification> {
-    return this.notification$.asObservable();
+
+  /**
+   * Remove a notification by ID
+   */
+  removeNotification(id: string): void {
+    this.ngZone.run(() => {
+      const currentNotifications = this.notificationsSubject.value;
+      const updatedNotifications = currentNotifications.filter(n => n.id !== id);
+      this.notificationsSubject.next(updatedNotifications);
+    });
   }
-  
-  // Method to explicitly show a toast after a delay
-  showDelayed(message: string, type: 'success' | 'error' | 'info' | 'warning', delay: number = 500, duration: number = 5000): string {
-    const id = uuidv4();
-    setTimeout(() => {
-      this.show(message, type, duration);
-    }, delay);
-    return id;
+
+  /**
+   * Clear all notifications
+   */
+  clearAll(): void {
+    this.notificationsSubject.next([]);
   }
-  
-  // Observable that components can subscribe to
-  onNotification(): Observable<ToastNotification> {
-    return this.notification$.asObservable();
+
+  /**
+   * Dismiss a specific notification (alias for removeNotification)
+   */
+  dismiss(id: string): void {
+    this.removeNotification(id);
   }
-  // Special method for showing notifications after modal closing
-  showSuccessDelayed(message: string, delayMs: number = 300): void {
-    console.log(`Scheduling delayed success notification: ${message} after ${delayMs}ms`);
-    setTimeout(() => {
-      console.log('Now showing delayed notification');
-      this.showSuccess(message);
-    }, delayMs);
+
+  /**
+   * Show error notification (alias for showError)
+   */
+  error(title: string, message?: string, duration: number = 7000): string {
+    const fullMessage = message ? `${title}\n${message}` : title;
+    return this.showError(fullMessage, duration);
+  }
+
+  /**
+   * Generate a unique ID for notifications
+   */
+  private generateId(): string {
+    return Date.now().toString() + Math.random().toString(36).substr(2, 9);
   }
 }

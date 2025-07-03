@@ -1,63 +1,83 @@
 import { Injectable } from '@angular/core';
-import { FirebaseService } from './firebase.service';
-import { AuthService } from './auth.service';
-import { collection, query, onSnapshot, getDocs, QueryDocumentSnapshot, DocumentData, QuerySnapshot } from 'firebase/firestore';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { FirebaseService } from './firebase.service';
+import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
+
+export interface User {
+  id: string;
+  name: string;
+  surname: string;
+  email: string;
+  role: string;
+  department?: string;
+  createdAt?: any;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
-  private COLLECTION_NAME = 'users';
-  private usersSubject = new BehaviorSubject<any[]>([]);
+  private usersSubject = new BehaviorSubject<User[]>([]);
   public users$ = this.usersSubject.asObservable();
-  private unsubscribe: (() => void) | null = null;
+  
+  private totalUserCountSubject = new BehaviorSubject<number>(0);
+  public totalUserCount$ = this.totalUserCountSubject.asObservable();
 
-  constructor(
-    private firebaseService: FirebaseService,
-    private authService: AuthService
-  ) {
-    this.startListeningToUsers();
+  constructor(private firebaseService: FirebaseService) {
+    this.setupRealtimeUserListener();
   }
 
   /**
-   * Start listening to user changes in the database
+   * Set up real-time listener for users collection
    */
-  private startListeningToUsers(): void {
+  private setupRealtimeUserListener(): void {
     try {
+      const db = this.firebaseService.getDb();
       const usersQuery = query(
-        collection(this.firebaseService.firestore, this.COLLECTION_NAME)
+        collection(db, 'users'),
+        orderBy('createdAt', 'desc')
       );
-      
-      this.unsubscribe = this.firebaseService.listenToQuery(usersQuery, (snapshot: QuerySnapshot<DocumentData>) => {
-        const users = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({ 
-          id: doc.id, 
-          ...doc.data() 
-        }));
+
+      onSnapshot(usersQuery, (snapshot) => {
+        const users: User[] = [];
+        snapshot.forEach((doc) => {
+          users.push({
+            id: doc.id,
+            ...doc.data()
+          } as User);
+        });
+        
         this.usersSubject.next(users);
+        this.totalUserCountSubject.next(users.length);
+      }, (error) => {
+        console.error('Error listening to users:', error);
+        // Fallback to empty array if error occurs
+        this.usersSubject.next([]);
+        this.totalUserCountSubject.next(0);
       });
     } catch (error) {
-      console.error('Error setting up users listener:', error);
+      console.error('Error setting up user listener:', error);
     }
   }
 
   /**
-   * Get all users (one-time fetch)
+   * Get all users
    */
-  async getAllUsers(): Promise<any[]> {
-    try {
-      return await this.firebaseService.getCollection(this.COLLECTION_NAME);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      return [];
-    }
+  getUsers(): Observable<User[]> {
+    return this.users$;
+  }
+
+  /**
+   * Get total user count
+   */
+  getTotalUserCount(): Observable<number> {
+    return this.totalUserCount$;
   }
 
   /**
    * Get users by role
-   * @param role The role to filter by (e.g., 'generaluser', 'overalladmin', 'departmentadmin')
    */
-  getUsersByRole(role: string): Observable<any[]> {
+  getUsersByRole(role: string): Observable<User[]> {
     return new Observable(observer => {
       this.users$.subscribe(users => {
         const filteredUsers = users.filter(user => user.role === role);
@@ -67,23 +87,41 @@ export class UserService {
   }
 
   /**
-   * Get total user count
+   * Add a new user
    */
-  getTotalUserCount(): Observable<number> {
-    return new Observable(observer => {
-      this.users$.subscribe(users => {
-        observer.next(users.length);
+  async addUser(userData: Omit<User, 'id'>): Promise<void> {
+    try {
+      await this.firebaseService.addDocument('users', {
+        ...userData,
+        createdAt: new Date()
       });
-    });
+    } catch (error) {
+      console.error('Error adding user:', error);
+      throw error;
+    }
   }
 
   /**
-   * Stop listening to user changes
+   * Update a user
    */
-  stopListening(): void {
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
+  async updateUser(userId: string, userData: Partial<User>): Promise<void> {
+    try {
+      await this.firebaseService.updateDocument('users', userId, userData);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a user
+   */
+  async deleteUser(userId: string): Promise<void> {
+    try {
+      await this.firebaseService.deleteDocument('users', userId);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
     }
   }
 }

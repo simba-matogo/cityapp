@@ -4,6 +4,7 @@ import { LandingPageComponent } from './components/landing-page.component';
 import { GeneralUserDashboardComponent } from './components/general-user-dashboard.component';
 import { DepartmentAdminDashboardComponent } from './components/department-admin-dashboard.component';
 import { OverallAdminDashboardComponent } from './components/overall-admin-dashboard.component';
+import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { 
@@ -11,19 +12,34 @@ export const routes: Routes = [
     component: LandingPageComponent 
   },
   { 
+    path: 'login', 
+    component: LandingPageComponent 
+  },
+  { 
     path: 'firebase', 
-    component: FirebaseDemoComponent 
+    component: FirebaseDemoComponent,
+    canActivate: [AuthGuard]
   },
   { 
-    path: 'general-user-dashboard', 
-    component: GeneralUserDashboardComponent 
+    path: 'user-dashboard', 
+    component: GeneralUserDashboardComponent,
+    canActivate: [AuthGuard],
+    data: { role: 'generaluser' }
   },
   { 
-    path: 'department-admin-dashboard/:department', 
-    component: DepartmentAdminDashboardComponent 
+    path: 'department-dashboard', 
+    component: DepartmentAdminDashboardComponent,
+    canActivate: [AuthGuard],
+    data: { role: 'departmentadmin' }
   },
   { 
-    path: 'overall-admin-dashboard', 
-    component: OverallAdminDashboardComponent 
+    path: 'admin-dashboard', 
+    component: OverallAdminDashboardComponent,
+    canActivate: [AuthGuard],
+    data: { role: 'overalladmin' }
+  },
+  {
+    path: '**',
+    redirectTo: ''
   }
 ];

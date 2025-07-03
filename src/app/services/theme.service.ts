@@ -1,69 +1,64 @@
-import { Injectable, Renderer2, RendererFactory2 } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ThemeService {
-  private isDarkMode = new BehaviorSubject<boolean>(false);
-  public isDarkMode$ = this.isDarkMode.asObservable();
-  private renderer: Renderer2;
-  private THEME_KEY = 'city_app_theme';
+  private darkModeSubject = new BehaviorSubject<boolean>(false);
+  public isDarkMode$ = this.darkModeSubject.asObservable();
+  private readonly SESSION_THEME_KEY = 'sessionDarkMode';
 
-  constructor(rendererFactory: RendererFactory2) {
-    this.renderer = rendererFactory.createRenderer(null, null);
-    this.loadSavedTheme();
+  constructor() {
+    // Always start in light mode on service initialization
+    this.resetToLightMode();
   }
 
   /**
-   * Load the saved theme preference from localStorage
+   * Force reset to light mode and clear saved preferences
    */
-  private loadSavedTheme(): void {
-    try {
-      const savedTheme = localStorage.getItem(this.THEME_KEY);
-      if (savedTheme) {
-        const isDark = savedTheme === 'dark';
-        this.setDarkMode(isDark);
-      } else {
-        // Check if user prefers dark mode based on system preference
-        const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        this.setDarkMode(prefersDarkMode);
-      }
-    } catch (error) {
-      console.error('Error loading saved theme:', error);
+  resetToLightMode(): void {
+    // Clear any saved theme preferences
+    localStorage.removeItem('darkMode');
+    sessionStorage.removeItem(this.SESSION_THEME_KEY);
+    // Force light mode
+    this.setDarkMode(false);
+    // Remove dark class from document if it exists
+    document.documentElement.classList.remove('dark');
+  }
+
+  /**
+   * Initialize theme from session (used after auth)
+   * Returns to light mode on new login, preserves theme during session
+   */
+  initializeFromSession(): void {
+    const sessionTheme = sessionStorage.getItem(this.SESSION_THEME_KEY);
+    if (sessionTheme && JSON.parse(sessionTheme) === true) {
+      this.setDarkMode(true);
+    } else {
+      this.setDarkMode(false);
     }
   }
 
-  /**
-   * Toggle between dark and light mode
-   */
   toggleDarkMode(): void {
-    const newMode = !this.isDarkMode.value;
-    this.setDarkMode(newMode);
+    const currentMode = this.darkModeSubject.value;
+    this.setDarkMode(!currentMode);
   }
 
-  /**
-   * Set the dark mode state
-   * @param isDark Whether to enable dark mode
-   */
   setDarkMode(isDark: boolean): void {
-    this.isDarkMode.next(isDark);
+    this.darkModeSubject.next(isDark);
+    // Store theme preference in session storage only
+    sessionStorage.setItem(this.SESSION_THEME_KEY, JSON.stringify(isDark));
     
+    // Apply theme to document
     if (isDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-    
-    // Save preference to localStorage
-    localStorage.setItem(this.THEME_KEY, isDark ? 'dark' : 'light');
   }
 
-  /**
-   * Get the current theme mode
-   * @returns Observable of boolean indicating if dark mode is enabled
-   */
-  isDarkModeEnabled(): Observable<boolean> {
-    return this.isDarkMode$;
+  isDarkMode(): boolean {
+    return this.darkModeSubject.value;
   }
 }
