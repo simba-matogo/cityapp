@@ -9,7 +9,7 @@ import { NotificationService, Notification } from '../services/notification.serv
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed top-4 right-4 z-50 space-y-2">
+    <div class="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 space-y-2 flex flex-col items-center w-full max-w-full">
       <div 
         *ngFor="let notification of notifications; trackBy: trackByFn"
         class="notification-toast transform transition-all duration-300 ease-in-out"
@@ -40,15 +40,17 @@ import { NotificationService, Notification } from '../services/notification.serv
   `,
   styles: [`
     .notification-toast {
-      min-width: 300px;
-      max-width: 400px;
-      padding: 12px 16px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      min-width: 320px;
+      max-width: 90vw;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 14px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
       backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 255, 255, 0.1);
       cursor: pointer;
-      animation: slideIn 0.3s ease-out;
+      animation: slideInCenter 0.3s cubic-bezier(0.4,0,0.2,1);
     }
 
     .notification-toast.success {
@@ -76,13 +78,13 @@ import { NotificationService, Notification } from '../services/notification.serv
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
     }
 
-    @keyframes slideIn {
+    @keyframes slideInCenter {
       from {
-        transform: translateX(100%);
+        transform: translateY(-40px) scale(0.98);
         opacity: 0;
       }
       to {
-        transform: translateX(0);
+        transform: translateY(0) scale(1);
         opacity: 1;
       }
     }

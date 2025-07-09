@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FirebaseService } from '../services/firebase.service';
@@ -6,6 +6,10 @@ import { AuthService } from '../services/auth.service';
 import { Complaint } from '../models/complaint.model';
 import { Announcement } from '../models/announcement.model';
 import { AnnouncementService } from '../services/announcement.service';
+import { ComplaintService } from '../services/complaint.service';
+import { doc, updateDoc } from '@angular/fire/firestore';
+import { AiChatComponent } from './ai-chat.component';
+import { ChatService } from '../services/chat.service';
 import { Router } from '@angular/router';
 import { UserService } from '../services/user.service';
 import { ThemeService } from '../services/theme.service';
@@ -13,7 +17,7 @@ import { ThemeService } from '../services/theme.service';
 @Component({
   selector: 'app-general-user-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AiChatComponent],
   template: `
     <div class="min-h-screen" [class]="isDarkMode ? 'bg-gray-900' : 'bg-slate-50'">
       <!-- Modern Navbar -->
@@ -44,29 +48,26 @@ import { ThemeService } from '../services/theme.service';
               
               <!-- User Menu -->
               <div class="relative group">
-                <button class="flex items-center gap-2 p-2 rounded-full transition" 
-                        [class]="isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-blue-50'">
-                  <span class="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white font-medium">
+                <button class="flex items-center p-1 rounded-full transition bg-white border border-slate-200 shadow-sm hover:bg-slate-100 h-9 w-9">
+                  <span class="h-7 w-7 rounded-full bg-slate-200 flex items-center justify-center text-base font-bold text-slate-700 border border-slate-300">
                     {{userName[0]}}
                   </span>
-                  <span class="hidden sm:block font-medium" [class]="isDarkMode ? 'text-gray-200' : 'text-slate-700'">{{userName}}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" [class]="isDarkMode ? 'text-gray-400' : 'text-slate-400'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                <div class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border invisible group-hover:visible transition-all" 
-                     [class]="isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200'">
-                  <div class="p-3 border-b" [class]="isDarkMode ? 'border-gray-700' : 'border-slate-200'">
-                    <p class="text-sm font-medium" [class]="isDarkMode ? 'text-gray-200' : 'text-slate-700'">{{userName}}</p>
-                    <p class="text-xs" [class]="isDarkMode ? 'text-gray-400' : 'text-slate-500'">Citizen</p>
+                <div class="absolute right-0 mt-2 w-60 rounded-xl shadow-lg border border-slate-200 bg-white z-50 invisible group-hover:visible transition-all">
+                  <div class="flex flex-col items-center p-5 border-b border-slate-100">
+                    <span class="h-14 w-14 rounded-full bg-slate-200 flex items-center justify-center text-2xl font-bold text-slate-700 border border-slate-300 mb-2">
+                      {{userName[0]}}
+                    </span>
+                    <div class="font-bold text-slate-800 text-lg">{{userName}}</div>
+                    <div class="text-xs text-slate-500 font-medium mt-1">Citizen</div>
                   </div>
-                  <div class="p-2">
-                    <button class="w-full text-left px-3 py-2 text-sm rounded-md transition" 
-                            [class]="isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-slate-700 hover:bg-slate-50'">Profile Settings</button>
-                    <button class="w-full text-left px-3 py-2 text-sm rounded-md transition" 
-                            [class]="isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-slate-700 hover:bg-slate-50'">Help Center</button>
-                    <button (click)="logout()" class="w-full text-left px-3 py-2 text-sm rounded-md transition" 
-                            [class]="isDarkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-50'">Logout</button>
+                  <div class="flex flex-col p-3 gap-2">
+                    <button class="w-full text-left px-4 py-2 rounded-lg font-medium text-slate-700 hover:bg-slate-100 transition" (click)="openProfileModal()">Profile Settings</button>
+                    <button class="w-full text-left px-4 py-2 rounded-lg font-medium text-slate-700 hover:bg-slate-100 transition" (click)="showAboutModal = true">About</button>
+                    <button (click)="logout()" class="w-full text-left px-4 py-2 rounded-lg font-medium text-red-600 hover:bg-red-50 transition">Logout</button>
                   </div>
                 </div>
               </div>
@@ -143,55 +144,55 @@ import { ThemeService } from '../services/theme.service';
               </div>
               <!-- Status Cards -->
               <div class="grid grid-cols-2 lg:grid-cols-4 gap-1">
-                <div class="bg-blue-500 rounded-md border border-blue-600 px-1 py-0.5">
-                  <div class="flex items-center justify-center gap-1">
+                <div class="bg-white rounded-md border border-gray-200 pl-1 pr-2 py-0.5 w-fit shadow-sm">
+                  <div class="flex items-center gap-0">
                     <div class="flex-shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-yellow-300" fill="currentColor" viewBox="0 0 24 24">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                       </svg>
                     </div>
-                    <div class="flex flex-col items-center text-center">
-                      <p class="text-[8px] font-bold text-white leading-tight">Total</p>
-                      <p class="text-xs font-extrabold text-white leading-none">{{totalComplaints}}</p>
+                    <div class="flex items-center ml-1 gap-1">
+                      <p class="text-xs font-bold text-gray-700 leading-tight">Total</p>
+                      <p class="text-sm font-extrabold text-gray-900 leading-none">{{totalComplaints}}</p>
                     </div>
                   </div>
                 </div>
-                <div class="bg-blue-500 rounded-md border border-blue-600 px-1 py-0.5">
-                  <div class="flex items-center justify-center gap-1">
+                <div class="bg-white rounded-md border border-gray-200 pl-1 pr-2 py-0.5 w-fit shadow-sm">
+                  <div class="flex items-center gap-0">
                     <div class="flex-shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-green-300" fill="currentColor" viewBox="0 0 24 24">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
                     </div>
-                    <div class="flex flex-col items-center text-center">
-                      <p class="text-[8px] font-bold text-white leading-tight">Resolved</p>
-                      <p class="text-xs font-extrabold text-white leading-none">{{resolvedComplaints}}</p>
+                    <div class="flex items-center ml-1 gap-1">
+                      <p class="text-xs font-bold text-gray-700 leading-tight">Resolved</p>
+                      <p class="text-sm font-extrabold text-gray-900 leading-none">{{resolvedComplaints}}</p>
                     </div>
                   </div>
                 </div>
-                <div class="bg-blue-500 rounded-md border border-blue-600 px-1 py-0.5">
-                  <div class="flex items-center justify-center gap-1">
+                <div class="bg-white rounded-md border border-gray-200 pl-1 pr-2 py-0.5 w-fit shadow-sm">
+                  <div class="flex items-center gap-0">
                     <div class="flex-shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-orange-300" fill="currentColor" viewBox="0 0 24 24">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
                     </div>
-                    <div class="flex flex-col items-center text-center">
-                      <p class="text-[8px] font-bold text-white leading-tight">Pending</p>
-                      <p class="text-xs font-extrabold text-white leading-none">{{pendingComplaints}}</p>
+                    <div class="flex items-center ml-1 gap-1">
+                      <p class="text-xs font-bold text-gray-700 leading-tight">Pending</p>
+                      <p class="text-sm font-extrabold text-gray-900 leading-none">{{pendingComplaints}}</p>
                     </div>
                   </div>
                 </div>
-                <div class="bg-blue-500 rounded-md border border-blue-600 px-1 py-0.5">
-                  <div class="flex items-center justify-center gap-1">
+                <div class="bg-white rounded-md border border-gray-200 pl-1 pr-2 py-0.5 w-fit shadow-sm">
+                  <div class="flex items-center gap-0">
                     <div class="flex-shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-red-300" fill="currentColor" viewBox="0 0 24 24">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
                     </div>
-                    <div class="flex flex-col items-center text-center">
-                      <p class="text-[8px] font-bold text-white leading-tight">Overdue</p>
-                      <p class="text-xs font-extrabold text-white leading-none">{{overdueComplaints}}</p>
+                    <div class="flex items-center ml-1 gap-1">
+                      <p class="text-xs font-bold text-gray-700 leading-tight">Overdue</p>
+                      <p class="text-sm font-extrabold text-gray-900 leading-none">{{overdueComplaints}}</p>
                     </div>
                   </div>
                 </div>
@@ -221,39 +222,56 @@ import { ThemeService } from '../services/theme.service';
                   </button>
                 </div>
               </div>
-              <div class="flex flex-col gap-3">
-                <div *ngIf="loading" class="text-center text-slate-500 py-4">
-                  Loading complaints...
-                </div>
-                <div *ngIf="!loading && complaints.length === 0" class="text-center text-slate-500 py-4">
-                  No complaints found. Submit your first complaint to get started.
-                </div>
-                <!-- Complaint Cards -->
-                <div class="bg-slate-50/80 rounded p-3 flex flex-col gap-2 border border-slate-100 hover:shadow-lg transition group" 
-                     *ngFor="let complaint of (showAllComplaints ? complaints : complaints.slice(0, 2))">
+              <!-- Scrollable Complaints Container -->
+              <div class="max-h-96 overflow-y-auto pr-2">
+                <div class="flex flex-col gap-3">
+                  <div *ngIf="loading" class="text-center text-slate-500 py-4">
+                    Loading complaints...
+                  </div>
+                  <div *ngIf="!loading && complaints.length === 0" class="text-center text-slate-500 py-4">
+                    No complaints found. Submit your first complaint to get started.
+                  </div>
+                  <!-- Complaint Cards -->
+                  <div class="bg-slate-50/80 rounded p-3 flex flex-col gap-2 border border-slate-100 hover:shadow-lg transition group" 
+                       *ngFor="let complaint of complaints">
                   <div class="flex items-center justify-between">
                     <div class="font-semibold text-slate-700">{{ complaint.title }}</div>
-                    <span class="text-xs rounded px-2 py-0.5" 
-                          [ngClass]="{
-                            'text-yellow-600 bg-yellow-100': getComplaintStatus(complaint) === 'New' || getComplaintStatus(complaint) === 'Pending', 
-                            'text-green-600 bg-green-100': getComplaintStatus(complaint) === 'Resolved', 
-                            'text-blue-600 bg-blue-100': getComplaintStatus(complaint) === 'In Progress',
-                            'text-red-600 bg-red-100': getComplaintStatus(complaint) === 'Overdue'
-                          }">
-                      {{ getComplaintStatus(complaint) }}
-                    </span>
+                    <div class="flex items-center gap-2">
+                      <!-- Reply Button with Count -->
+                      <button 
+                        *ngIf="getReplyCount(complaint) > 0"
+                        (click)="openReplyModal(complaint)"
+                        class="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition-colors"
+                        title="View replies">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span class="font-medium">{{ getReplyCount(complaint) }}</span>
+                      </button>
+                      <span class="text-xs rounded px-2 py-0.5" 
+                            [ngClass]="{
+                              'text-yellow-600 bg-yellow-100': getComplaintStatus(complaint) === 'New' || getComplaintStatus(complaint) === 'Pending', 
+                              'text-green-600 bg-green-100': getComplaintStatus(complaint) === 'Resolved', 
+                              'text-blue-600 bg-blue-100': getComplaintStatus(complaint) === 'In Progress',
+                              'text-red-600 bg-red-100': getComplaintStatus(complaint) === 'Overdue'
+                            }">
+                        {{ getComplaintStatus(complaint) }}
+                      </span>
+                      <button 
+                        (click)="openDeleteConfirmModal(complaint)"
+                        class="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                        title="Delete complaint">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <div class="text-xs text-slate-500 mb-1">
                     {{complaint.dates.created | date:"MMM d, y 'at' h:mm a"}} • #{{complaint.id || 'C-' + (complaints.indexOf(complaint) + 1).toString().padStart(3, '0')}}
                   </div>
                   <div class="text-sm text-slate-600 mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                     {{complaint.description}}
-                  </div>
-                  <div class="flex items-center gap-2 mb-2">
-                    <div class="w-full h-2 bg-slate-200 rounded">
-                      <div class="h-2 bg-blue-500 rounded" [style.width.%]="getProgress(complaint)"></div>
-                    </div>
-                    <span class="text-[10px] text-slate-400">{{ getProgress(complaint) }}%</span>
                   </div>
                   <div class="flex gap-2 mt-1 flex-wrap">
                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -265,11 +283,7 @@ import { ThemeService } from '../services/theme.service';
                   </div>
                 </div>
               </div>
-              <div class="flex justify-end mt-2">
-                <button (click)="showAllComplaints = !showAllComplaints" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold hover:bg-blue-200 transition">
-                  {{ showAllComplaints ? 'View Less' : 'View All' }}
-                </button>
-              </div>
+            </div>
             </div>
           </div>
 
@@ -288,47 +302,49 @@ import { ThemeService } from '../services/theme.service';
                 </span>
                 <h2 class="text-lg font-bold text-slate-800 tracking-wide">City Updates</h2>
               </div>
-              <!-- Compact Update Items in Grid -->
-              <div class="grid grid-cols-1 gap-1">
-                <div *ngIf="announcements.length === 0" class="text-center text-xs text-slate-500 py-4">
-                  No city updates available at this time.
-                </div>
-                <div *ngFor="let announcement of announcements" 
-                     class="border border-slate-100 rounded-lg p-2 hover:shadow-sm transition-shadow cursor-pointer bg-white/60"
-                     (click)="viewAnnouncement(announcement)">
-                  <div class="flex items-start justify-between mb-1">
-                    <h4 class="font-medium text-slate-800 text-xs truncate flex-1">{{ announcement.title }}</h4>
-                    <span class="text-[9px] text-slate-400 ml-2 flex-shrink-0">{{ formatAnnouncementDate(announcement.dates.created) }}</span>
+              <!-- Compact Update Items with Single Announcement Display and Scroll -->
+              <div class="h-32 overflow-y-auto pr-2">
+                <div class="space-y-1">
+                  <div *ngIf="announcements.length === 0" class="text-center text-xs text-slate-500 py-4">
+                    No city updates available at this time.
                   </div>
-                  <div class="flex items-center gap-1 mb-1">
-                    <span class="text-[8px] px-1.5 py-0.5 rounded-full" [ngClass]="getAnnouncementPriorityColor(announcement.priority)">
-                      {{ announcement.priority }}
-                    </span>
-                    <span *ngIf="announcement.isUrgent" class="text-[8px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">
-                      Urgent
-                    </span>
-                    <span class="text-[8px] text-slate-500">{{ announcement.department }}</span>
-                  </div>
-                  <p class="text-[9px] text-slate-600 line-clamp-2">{{ announcement.content }}</p>
-                  <div class="flex items-center justify-between mt-1">
-                    <div class="flex items-center gap-2 text-[8px] text-slate-400">
-                      <span class="flex items-center gap-0.5">
-                        <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        {{ announcement.views || 0 }}
+                  <div *ngFor="let announcement of announcements" 
+                       class="border border-slate-100 rounded-lg p-2 hover:shadow-sm transition-shadow cursor-pointer bg-white/60"
+                       (click)="viewAnnouncement(announcement)">
+                    <div class="flex items-start justify-between mb-1">
+                      <h4 class="font-medium text-slate-800 text-xs truncate flex-1">{{ announcement.title }}</h4>
+                      <span class="text-[9px] text-slate-400 ml-2 flex-shrink-0">{{ formatAnnouncementDate(announcement.dates.created) }}</span>
+                    </div>
+                    <div class="flex items-center gap-1 mb-1">
+                      <span class="text-[8px] px-1.5 py-0.5 rounded-full" [ngClass]="getAnnouncementPriorityColor(announcement.priority)">
+                        {{ announcement.priority }}
                       </span>
-                      <span class="flex items-center gap-0.5">
-                        <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                        {{ announcement.likes || 0 }}
+                      <span *ngIf="announcement.isUrgent" class="text-[8px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">
+                        Urgent
+                      </span>
+                      <span class="text-[8px] text-slate-500">{{ announcement.department }}</span>
+                    </div>
+                    <p class="text-[9px] text-slate-600 line-clamp-2">{{ announcement.content }}</p>
+                    <div class="flex items-center justify-between mt-1">
+                      <div class="flex items-center gap-2 text-[8px] text-slate-400">
+                        <span class="flex items-center gap-0.5">
+                          <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          {{ announcement.views || 0 }}
+                        </span>
+                        <span class="flex items-center gap-0.5">
+                          <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                          </svg>
+                          {{ announcement.likes || 0 }}
+                        </span>
+                      </div>
+                      <span class="text-[8px] px-1 py-0.5 bg-slate-100 text-slate-600 rounded">
+                        {{ announcement.type }}
                       </span>
                     </div>
-                    <span class="text-[8px] px-1 py-0.5 bg-slate-100 text-slate-600 rounded">
-                      {{ announcement.type }}
-                    </span>
                   </div>
                 </div>
               </div>
@@ -345,158 +361,139 @@ import { ThemeService } from '../services/theme.service';
                 <h2 class="font-semibold text-slate-700 text-lg">AI Assistant</h2>
               </div>
               <p class="text-sm text-slate-600 text-center mb-4">Get instant help with your complaints and city services</p>
-              <button class="px-4 py-2 bg-purple-600 text-white rounded text-sm font-semibold hover:bg-purple-700 transition">Ask AI</button>
+              <button 
+              (click)="openAiChat()"
+              class="px-4 py-2 bg-purple-600 text-white rounded text-sm font-semibold hover:bg-purple-700 transition">Ask AI</button>
+            </div>
+
+            <!-- AI Insights Card -->
+            <div class="bg-gradient-to-br from-purple-100/80 to-white/80 backdrop-blur rounded-xl border border-purple-200 shadow p-3 flex flex-col h-48 w-full">
+              <div class="flex items-center mb-2 justify-between w-full">
+                <span class="flex items-center">
+                  <span class="bg-purple-100 text-purple-600 rounded-full p-1 mr-1 flex items-center justify-center">
+                    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='h-4 w-4' fill='none' stroke='currentColor' stroke-width='2'>
+                      <path d='M12 4a8 8 0 0 0-8 8c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4a8 8 0 0 0-8-8z' stroke='#a21caf' fill='#f3e8ff'/>
+                      <circle cx='9' cy='12' r='1.5' fill='#a21caf'/>
+                      <circle cx='15' cy='12' r='1.5' fill='#a21caf'/>
+                    </svg>
+                  </span>
+                  <span class="font-semibold text-xs text-slate-800">AI Insights</span>
+                </span>
+              </div>
+              <ul class="list-disc pl-3 text-[10px] text-slate-700 mb-2 flex-1">
+                <li>Harare is known as the "Sunshine City" for its beautiful weather and vibrant atmosphere. ☀️🌳</li>
+                <li>The city boasts lush gardens, tree-lined avenues, and a welcoming community spirit. 🌺🌳🤝</li>
+                <li>Harare is a hub for arts, culture, and innovation in Southern Africa. 🎨🎶💡</li>
+                <li>Enjoy year-round mild temperatures and plenty of sunshine, making it ideal for outdoor activities. 🌞🏞️</li>
+                <li>Harare's markets, restaurants, and festivals offer a taste of Zimbabwean hospitality and creativity. 🍲🎉🛍️</li>
+              </ul>
+              <div class="flex justify-center">
+                <button (click)="openInsightsModal()" class="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-[10px] font-bold" style="min-width:unset;">View Insights</button>
+              </div>
+            </div>
+
+            <!-- Trends & Risks Card -->
+            <div class="bg-gradient-to-br from-blue-100/80 to-white/80 backdrop-blur rounded-xl border border-blue-200 shadow p-3 flex flex-col h-48 w-full">
+              <div class="flex items-center mb-2 justify-between w-full">
+                <span class="flex items-center">
+                  <span class="bg-red-100 text-red-600 rounded-full p-1 mr-1 flex items-center justify-center">
+                    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='h-4 w-4' fill='none' stroke='currentColor' stroke-width='2'>
+                      <polyline points='3,17 9,11 13,15 21,7' fill='none' stroke='#dc2626' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/>
+                      <circle cx='3' cy='17' r='1.5' fill='#dc2626'/>
+                      <circle cx='9' cy='11' r='1.5' fill='#dc2626'/>
+                      <circle cx='13' cy='15' r='1.5' fill='#dc2626'/>
+                      <circle cx='21' cy='7' r='1.5' fill='#dc2626'/>
+                    </svg>
+                  </span>
+                  <span class="font-semibold text-xs text-slate-800">Trends & Risks</span>
+                </span>
+              </div>
+              <ul class="list-disc pl-3 text-[10px] text-slate-700 mb-2 flex-1">
+                <li>There is a rising trend in water supply complaints during the dry season. 💧📈</li>
+                <li>Road infrastructure complaints spike after heavy rains, indicating a need for improved drainage and road repairs. 🚧🌧️</li>
+                <li>Waste management issues are more frequent in high-density suburbs. 🗑️🏘️</li>
+                <li>Seasonal disease outbreaks, such as cholera, are linked to water and sanitation challenges. 🦠🚱</li>
+                <li>Community engagement can reduce illegal dumping and improve city cleanliness. 🤝♻️</li>
+              </ul>
+              <div class="flex justify-center">
+                <button (click)="openTrendsModal()" class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[10px] font-bold" style="min-width:unset;">View Trends</button>
+              </div>
             </div>
           </div>
         </div>
       </main>
 
       <!-- Modern Footer with Smart City AI Information -->
-      <footer class="bg-gradient-to-r from-blue-900 to-indigo-900 text-white py-12 mt-12">
+      <footer class="bg-white text-gray-800 py-12 mt-12 border-t border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <!-- AI Innovation Section -->
           <div class="mb-10">
             <div class="flex items-center justify-center mb-6">
-              <div class="h-1 bg-gradient-to-r from-blue-400 to-indigo-400 w-20 rounded-full mr-3"></div>
-              <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-300 to-indigo-300">SmartCity AI Ecosystem</h2>
-              <div class="h-1 bg-gradient-to-r from-indigo-400 to-blue-400 w-20 rounded-full ml-3"></div>
+              <div class="h-1 bg-gradient-to-r from-blue-600 to-indigo-600 w-20 rounded-full mr-3"></div>
+              <h2 class="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">SmartCity AI Ecosystem</h2>
+              <div class="h-1 bg-gradient-to-r from-indigo-600 to-blue-600 w-20 rounded-full ml-3"></div>
             </div>
-            <p class="text-center text-blue-200 mb-8 max-w-3xl mx-auto">
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">
               Powering Harare's future through intelligent systems that improve city services, enhance citizen experience, and enable data-driven governance.
             </p>
             
             <!-- Smart City AI Features -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div class="bg-blue-800 bg-opacity-30 p-4 rounded-lg border border-blue-700 hover:border-blue-500 transition">
+              <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-blue-300 transition">
                 <div class="flex items-center mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
-                  <h3 class="text-lg font-semibold text-blue-300">Predictive Analytics</h3>
+                  <h3 class="text-lg font-semibold text-gray-800">Predictive Analytics</h3>
                 </div>
-                <p class="text-sm text-blue-200">Our AI systems analyze patterns in service requests to predict future needs, allowing proactive resource allocation and maintenance scheduling.</p>
+                <p class="text-sm text-gray-600">Our AI systems analyze patterns in service requests to predict future needs, allowing proactive resource allocation and maintenance scheduling.</p>
               </div>
               
-              <div class="bg-blue-800 bg-opacity-30 p-4 rounded-lg border border-blue-700 hover:border-blue-500 transition">
+              <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-blue-300 transition">
                 <div class="flex items-center mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                   </svg>
-                  <h3 class="text-lg font-semibold text-blue-300">NLP-Powered Complaints</h3>
+                  <h3 class="text-lg font-semibold text-gray-800">NLP-Powered Complaints</h3>
                 </div>
-                <p class="text-sm text-blue-200">Natural Language Processing automatically categorizes, prioritizes, and routes your complaints to the right department, reducing response times by up to 60%.</p>
+                <p class="text-sm text-gray-600">Natural Language Processing automatically categorizes, prioritizes, and routes your complaints to the right department, reducing response times by up to 60%.</p>
               </div>
               
-              <div class="bg-blue-800 bg-opacity-30 p-4 rounded-lg border border-blue-700 hover:border-blue-500 transition">
+              <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-blue-300 transition">
                 <div class="flex items-center mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                   </svg>
-                  <h3 class="text-lg font-semibold text-blue-300">City Resource Mapping</h3>
+                  <h3 class="text-lg font-semibold text-gray-800">City Resource Mapping</h3>
                 </div>
-                <p class="text-sm text-blue-200">Geospatial AI analyzes city infrastructure data to optimize resource allocation, identify service gaps, and guide urban planning decisions.</p>
+                <p class="text-sm text-gray-600">Geospatial AI analyzes city infrastructure data to optimize resource allocation, identify service gaps, and guide urban planning decisions.</p>
               </div>
             </div>
           </div>
           
-          <!-- Statistics Bar -->
-          <div class="flex flex-wrap justify-center gap-8 py-6 border-t border-b border-blue-800 mb-10">
-            <div class="text-center">
-              <div class="text-2xl font-bold text-blue-300">93%</div>
-              <div class="text-xs text-blue-200">Issue Resolution Rate</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-blue-300">2.5hr</div>
-              <div class="text-xs text-blue-200">Avg Response Time</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-blue-300">15k+</div>
-              <div class="text-xs text-blue-200">Citizens Engaged</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-blue-300">24/7</div>
-              <div class="text-xs text-blue-200">AI-Powered Support</div>
-            </div>
-          </div>
+
           
           <!-- Regular Footer Content -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 class="text-lg font-semibold text-white mb-4">Contact Us</h3>
-              <div class="space-y-2">
-                <p class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 012 2z" />
-                  </svg>
-                  <a href="mailto:smart&#64;hararecity.gov.zw" class="hover:text-blue-300 transition">smart&#64;hararecity.gov.zw</a>
-                </p>
-                <p class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  <a href="tel:+263-4-753777" class="hover:text-blue-300 transition">+263-4-753777</a>
-                </p>
-              </div>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-white mb-4">Quick Links</h3>
-              <div class="space-y-2">
-                <a href="#" class="flex items-center hover:text-blue-300 transition">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                  SmartCity Initiative
-                </a>
-                <a href="#" class="flex items-center hover:text-blue-300 transition">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                  Open Data Portal
-                </a>
-                <a href="#" class="flex items-center hover:text-blue-300 transition">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                  Developer API
-                </a>
-                <a href="#" class="flex items-center hover:text-blue-300 transition">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                  Privacy Policy
-                </a>
-              </div>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-white mb-4">Emergency Contacts</h3>
-              <div class="space-y-2">
-                <p class="flex items-center gap-2">
-                  <span class="text-red-400 font-semibold">Emergency:</span>
-                  <a href="tel:999" class="hover:text-blue-300 transition">999</a>
-                </p>
-                <p class="flex items-center gap-2">
-                  <span class="text-yellow-300 font-semibold">Fire Brigade:</span>
-                  <a href="tel:994" class="hover:text-blue-300 transition">994</a>
-                </p>
-                <p class="flex items-center gap-2">
-                  <span class="text-green-400 font-semibold">Smart City Helpdesk:</span>
-                  <a href="tel:+263-4-700800" class="hover:text-blue-300 transition">+263-4-700800</a>
-                </p>
+          <div class="grid grid-cols-1 gap-4">
+            <div class="text-center">
+              <h3 class="text-sm font-semibold text-gray-800 mb-1">Contact</h3>
+              <div class="text-xs text-gray-600">
+                <a href="mailto:smart&#64;hararecity.gov.zw" class="hover:text-blue-600 transition">smart&#64;hararecity.gov.zw</a>
               </div>
             </div>
           </div>
           
           <!-- Copyright with AI Assistant Info -->
-          <div class="mt-8 pt-8 border-t border-blue-800 text-center">
+          <div class="mt-8 pt-8 border-t border-gray-300 text-center">
             <div class="flex justify-center items-center mb-4">
-              <span class="bg-blue-800 rounded-full p-2 mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <span class="bg-blue-600 rounded-full p-2 mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 012 2z" />
                 </svg>
               </span>
-              <p class="text-sm text-blue-200">This platform is powered by <span class="font-semibold text-blue-300">CityAI Assistant</span>, processing over 5,000 citizen requests daily with 98% accuracy</p>
+              <p class="text-sm text-gray-600">This platform is powered by <span class="font-semibold text-blue-600">CityAI Assistant</span>, processing over 5,000 citizen requests daily with 98% accuracy</p>
             </div>
-            <p class="text-sm text-blue-300">&copy; 2025 Harare Smart City Portal. All rights reserved.</p>
+            <p class="text-sm text-gray-600">&copy; 2025 Harare Smart City Portal. All rights reserved.</p>
           </div>
         </div>
       </footer>
@@ -551,7 +548,6 @@ import { ThemeService } from '../services/theme.service';
                 <option value="Water and Sanitation">Water and Sanitation</option>
                 <option value="Roads and Transport">Roads and Transport</option>
                 <option value="Waste Management">Waste Management</option>
-                <option value="General Services">General Services</option>
                 <option value="Other">Other</option>
               </select>
               <div *ngIf="formErrors['department']" class="text-red-500 text-xs mt-0.5">This field is required</div>
@@ -630,6 +626,320 @@ import { ThemeService } from '../services/theme.service';
         </div>
       </div>
     </div>
+
+    <!-- Reply Modal -->
+    <div *ngIf="showReplyModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl border border-gray-200">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+          <div class="flex items-center gap-3">
+            <span class="bg-blue-100 text-blue-600 rounded-full p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </span>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-800">Admin Replies</h3>
+              <p class="text-sm text-gray-600">{{ selectedComplaint?.title }}</p>
+            </div>
+          </div>
+          <button (click)="closeReplyModal()" class="text-gray-400 hover:text-gray-600 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-4 max-h-96 overflow-y-auto">
+          <div *ngIf="getReplies(selectedComplaint).length === 0" class="text-center text-gray-500 py-8">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <p>No replies yet</p>
+          </div>
+          
+          <div *ngFor="let reply of getReplies(selectedComplaint); let i = index" class="mb-4 last:mb-0">
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <!-- Reply Header -->
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <span class="bg-blue-100 text-blue-600 rounded-full p-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p class="font-semibold text-gray-800 text-sm">{{ getReplierName(reply.updatedBy) }}</p>
+                    <p class="text-xs text-gray-500">{{ getReplierRole(reply.updatedBy) }}</p>
+                  </div>
+                </div>
+                <span class="text-xs text-gray-500">{{ formatReplyDate(reply.timestamp) }}</span>
+              </div>
+              
+              <!-- Reply Content -->
+              <div class="bg-white rounded p-3 border border-gray-100">
+                <div class="flex justify-between items-start">
+                  <p class="text-sm text-gray-700 leading-relaxed flex-1">{{ reply.content }}</p>
+                  <button 
+                    (click)="openDeleteReplyConfirmModal(selectedComplaint!, i)"
+                    class="ml-2 p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                    title="Delete reply">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex justify-end p-4 border-t border-gray-200">
+          <button (click)="closeReplyModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Reply Confirmation Modal -->
+    <div *ngIf="showDeleteReplyConfirmModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-md border border-gray-200">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+          <div class="flex items-center gap-3">
+            <div class="bg-red-100 text-red-600 rounded-full p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-gray-800">Delete Reply</h3>
+              <p class="text-sm text-gray-600">This action cannot be undone</p>
+            </div>
+          </div>
+          <button (click)="closeDeleteReplyConfirmModal()" class="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="p-4">
+          <p class="text-gray-700 mb-4">
+            Are you sure you want to delete this reply?
+          </p>
+          <div class="bg-gray-50 rounded p-3 mb-4">
+            <p class="text-sm text-gray-600 italic">"{{ getReplyContentToDelete() }}"</p>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex gap-3 p-4 border-t border-gray-200">
+          <button 
+            (click)="closeDeleteReplyConfirmModal()"
+            class="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">
+            Cancel
+          </button>
+          <button 
+            (click)="confirmDeleteReply()"
+            class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">
+            Delete Reply
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div *ngIf="showDeleteConfirmModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-md border border-gray-200">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+          <div class="flex items-center gap-3">
+            <div class="bg-red-100 text-red-600 rounded-full p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-gray-800">Delete Complaint</h3>
+              <p class="text-sm text-gray-600">This action cannot be undone</p>
+            </div>
+          </div>
+          <button (click)="closeDeleteConfirmModal()" class="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="p-4">
+          <p class="text-gray-700 mb-4">
+            Are you sure you want to delete the complaint "<strong>{{ complaintToDelete?.title }}</strong>"?
+          </p>
+          <p class="text-sm text-gray-600 mb-6">
+            This will permanently remove the complaint from the system and cannot be recovered.
+          </p>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex gap-3 p-4 border-t border-gray-200">
+          <button 
+            (click)="closeDeleteConfirmModal()"
+            class="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">
+            Cancel
+          </button>
+          <button 
+            (click)="confirmDeleteComplaint()"
+            [disabled]="deletingComplaint"
+            class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            <span *ngIf="!deletingComplaint">Delete Complaint</span>
+            <span *ngIf="deletingComplaint" class="flex items-center justify-center gap-2">
+              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Deleting...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- About Modal -->
+    <div *ngIf="showAboutModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+      <div class="bg-white rounded-xl shadow-2xl w-[83vw] max-w-md p-0 mx-auto">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-xl flex items-center justify-between">
+          <h2 class="text-lg font-bold">About</h2>
+          <button (click)="showAboutModal = false" class="text-white hover:text-gray-200 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="p-4 space-y-3">
+          <!-- Profile -->
+          <div class="flex flex-col items-center mb-2">
+            <img src="assets/dev.jpg" alt="Developer" class="w-20 h-20 rounded-full object-cover mb-2 shadow" />
+            <div class="text-base font-bold text-gray-800">Simbarashe Matogo</div>
+            <div class="text-xs text-blue-600 font-semibold">Full Stack Developer</div>
+            <div class="text-xs text-gray-500">Final Year, Telone Centre for Learning</div>
+          </div>
+          <!-- About -->
+          <div>
+            <div class="text-xs text-gray-700 text-center">
+              Passionate about tech, I build modern web apps and love solving real-world problems. Open to work and collaborations!
+            </div>
+          </div>
+          <!-- About This Project -->
+          <div>
+            <div class="text-xs font-semibold text-gray-800 mb-1 flex items-center"><svg class="w-4 h-4 text-blue-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>About This Project</div>
+            <div class="text-xs text-gray-700">
+              Smart City Management System is a modern web platform for city administration, complaint management, and real-time service monitoring. Built with Angular and Firebase, it empowers city officials and citizens with efficient, transparent, and AI-powered tools for a smarter city.
+            </div>
+          </div>
+          <!-- Skills -->
+          <div>
+            <div class="text-xs font-semibold text-gray-800 mb-1 flex items-center"><svg class="w-4 h-4 text-blue-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>Skills</div>
+            <div class="flex flex-wrap gap-1">
+              <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">Angular</span>
+              <span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">TypeScript</span>
+              <span class="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded text-xs">JavaScript</span>
+              <span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs">Firebase</span>
+              <span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs">Node.js</span>
+              <span class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded text-xs">React</span>
+              <span class="bg-pink-100 text-pink-800 px-2 py-0.5 rounded text-xs">Python</span>
+            </div>
+          </div>
+          <!-- Contact -->
+          <div>
+            <div class="text-xs font-semibold text-gray-800 mb-1 flex items-center"><svg class="w-4 h-4 text-blue-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 012 2z"></path></svg>Contact</div>
+            <div class="text-xs text-gray-700">Email: simbarashe.matogo[at]gmail.com</div>
+            <div class="text-xs text-gray-700">Phone: +263 77 123 4567</div>
+            <div class="text-xs text-gray-700">LinkedIn: linkedin.com/in/simbarashe-matogo</div>
+          </div>
+          <!-- Call to Action -->
+          <div class="text-center mt-2">
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-2 text-xs mb-2">Let's work together!</div>
+            <button (click)="showAboutModal = false" class="bg-gray-600 text-white px-4 py-1 rounded text-xs hover:bg-gray-700 transition">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Chat Component -->
+            <app-ai-chat #aiChat></app-ai-chat>
+
+    <!-- AI Insights Modal -->
+    <div *ngIf="showInsightsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-0 m-0 w-full h-full">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl sm:max-w-3xl md:max-w-4xl max-h-[80vh] h-[80vh] border border-gray-200 flex flex-col mx-8 sm:mx-16 my-8">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+          <div class="flex items-center gap-3">
+            <span class="bg-purple-100 text-purple-600 rounded-full p-2">
+              <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='h-5 w-5' fill='none' stroke='currentColor' stroke-width='2'>
+                <path d='M12 4a8 8 0 0 0-8 8c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4a8 8 0 0 0-8-8z' stroke='#a21caf' fill='#f3e8ff'/>
+                <circle cx='9' cy='12' r='1.5' fill='#a21caf'/>
+                <circle cx='15' cy='12' r='1.5' fill='#a21caf'/>
+              </svg>
+            </span>
+            <h3 class="text-lg font-bold text-slate-800">AI Insights</h3>
+          </div>
+          <button (click)="showInsightsModal = false" class="text-gray-400 hover:text-gray-600 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="flex-1 flex flex-col justify-center items-center p-6 overflow-y-auto">
+          <div class="text-base text-slate-700 text-center font-medium mb-6" style="min-height: 120px;">
+            {{ aiInsightsList[currentInsightIndex] }}
+          </div>
+        </div>
+        <div class="flex justify-between items-center p-4 border-t border-gray-200">
+          <button (click)="showInsightsModal = false" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Close</button>
+          <button (click)="showNextInsight()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trends & Risks Modal -->
+    <div *ngIf="showTrendsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-0 m-0 w-full h-full">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl sm:max-w-3xl md:max-w-4xl max-h-[80vh] h-[80vh] border border-gray-200 flex flex-col mx-8 sm:mx-16 my-8">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+          <div class="flex items-center gap-3">
+            <span class="bg-red-100 text-red-600 rounded-full p-2">
+              <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='h-5 w-5' fill='none' stroke='currentColor' stroke-width='2'>
+                <polyline points='3,17 9,11 13,15 21,7' fill='none' stroke='#dc2626' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/>
+                <circle cx='3' cy='17' r='1.5' fill='#dc2626'/>
+                <circle cx='9' cy='11' r='1.5' fill='#dc2626'/>
+                <circle cx='13' cy='15' r='1.5' fill='#dc2626'/>
+                <circle cx='21' cy='7' r='1.5' fill='#dc2626'/>
+              </svg>
+            </span>
+            <h3 class="text-lg font-bold text-slate-800">Trends & Risks</h3>
+          </div>
+          <button (click)="showTrendsModal = false" class="text-gray-400 hover:text-gray-600 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="flex-1 flex flex-col justify-center items-center p-6 overflow-y-auto">
+          <div class="text-base text-slate-700 text-center font-medium mb-6" style="min-height: 120px;">
+            {{ trendsAndRisksList[currentTrendIndex] }}
+          </div>
+        </div>
+        <div class="flex justify-between items-center p-4 border-t border-gray-200">
+          <button (click)="showTrendsModal = false" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Close</button>
+          <button (click)="showNextTrend()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Next</button>
+        </div>
+      </div>
+    </div>
   `,
   styles: `
     :host {
@@ -663,7 +973,6 @@ export class GeneralUserDashboardComponent implements OnInit {
   efficiencyChange: number = 0;
 
   // View states
-  showAllComplaints: boolean = false;
 
   // Activity and notifications
   activityFeed: any[] = [];
@@ -690,6 +999,15 @@ export class GeneralUserDashboardComponent implements OnInit {
   submittingComplaint: boolean = false;
   formErrors: { [key: string]: boolean } = {};
   locationAddress: string = '';
+  showAboutModal: boolean = false;
+  showDeleteConfirmModal: boolean = false;
+  complaintToDelete: Complaint | null = null;
+  deletingComplaint: boolean = false;
+  showReplyModal: boolean = false;
+  selectedComplaint: Complaint | null = null;
+  showDeleteReplyConfirmModal: boolean = false;
+  replyToDelete: { complaint: Complaint; index: number } | null = null;
+  showAiChatModal: boolean = false;
 
   // Stats
   stats = {
@@ -713,8 +1031,21 @@ export class GeneralUserDashboardComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private userService: UserService,
     private themeService: ThemeService,
-    private announcementService: AnnouncementService
+    private announcementService: AnnouncementService,
+    private complaintService: ComplaintService,
+    private chatService: ChatService
   ) {}
+
+  @ViewChild(AiChatComponent) aiChat!: AiChatComponent;
+
+  // AI Chat functionality
+  openAiChat() {
+    if (this.aiChat) {
+      this.aiChat.openChat();
+    } else {
+      console.error('AI Chat component not found');
+    }
+  }
 
   async ngOnInit() {
     await this.getCurrentUserInfo();
@@ -809,6 +1140,19 @@ export class GeneralUserDashboardComponent implements OnInit {
       this.loading = false;
       this.updateComplaintStats();
       this.cdr.detectChanges();
+      
+      // Log the real counts for debugging
+      console.log('Real complaint counts:', {
+        total: this.totalComplaints,
+        resolved: this.resolvedComplaints,
+        pending: this.pendingComplaints,
+        overdue: this.overdueComplaints
+      });
+      
+      // Force change detection to ensure UI updates
+      setTimeout(() => {
+        this.cdr.detectChanges();
+      }, 100);
     } catch (error) {
       console.error('Error loading complaints:', error);
       this.error = 'Failed to load complaints';
@@ -882,6 +1226,12 @@ export class GeneralUserDashboardComponent implements OnInit {
   // Update complaint statistics
   updateComplaintStats() {
     if (!this.complaints || this.complaints.length === 0) {
+      // Reset all counts to 0
+      this.totalComplaints = 0;
+      this.resolvedComplaints = 0;
+      this.pendingComplaints = 0;
+      this.overdueComplaints = 0;
+      
       this.stats = {
         totalComplaints: 0,
         pendingComplaints: 0,
@@ -891,12 +1241,102 @@ export class GeneralUserDashboardComponent implements OnInit {
       return;
     }
 
+    // Calculate real counts from complaints data
+    this.totalComplaints = this.complaints.length;
+    this.resolvedComplaints = this.complaints.filter(c => c.status === 'Resolved').length;
+    this.pendingComplaints = this.complaints.filter(c => 
+      c.status === 'PendingReview' || 
+      c.status === 'New'
+    ).length;
+    
+    // Calculate overdue complaints (complaints older than 7 days that are not resolved)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    this.overdueComplaints = this.complaints.filter(c => {
+      if (c.status === 'Resolved') return false; // Resolved complaints are not overdue
+      
+      const createdDate = new Date(c.dates.created);
+      return createdDate < sevenDaysAgo;
+    }).length;
+
+    // Update stats object for backward compatibility
     this.stats = {
-      totalComplaints: this.complaints.length,
-      pendingComplaints: this.complaints.filter(c => c.status === 'PendingReview' || c.status === 'New').length,
-      resolvedComplaints: this.complaints.filter(c => c.status === 'Resolved').length,
+      totalComplaints: this.totalComplaints,
+      pendingComplaints: this.pendingComplaints,
+      resolvedComplaints: this.resolvedComplaints,
       inProgressComplaints: this.complaints.filter(c => c.status === 'InProgress').length
     };
+
+    // Calculate additional metrics
+    this.calculateResponseTimeMetrics();
+    this.calculateSatisfactionMetrics();
+    this.calculateEfficiencyMetrics();
+  }
+
+  // Calculate response time metrics
+  private calculateResponseTimeMetrics() {
+    const resolvedComplaints = this.complaints.filter(c => c.status === 'Resolved');
+    if (resolvedComplaints.length === 0) {
+      this.averageResponseTime = 0;
+      this.responseTimeChange = 0;
+      this.isResponseTimeImproved = false;
+      return;
+    }
+
+    let totalResponseTime = 0;
+    resolvedComplaints.forEach(complaint => {
+      const createdDate = new Date(complaint.dates.created);
+      const resolvedDate = new Date(complaint.dates.updated);
+      const responseTime = resolvedDate.getTime() - createdDate.getTime();
+      totalResponseTime += responseTime;
+    });
+
+    this.averageResponseTime = totalResponseTime / resolvedComplaints.length;
+    // For demo purposes, assume 10% improvement
+    this.responseTimeChange = -10;
+    this.isResponseTimeImproved = true;
+  }
+
+  // Calculate satisfaction metrics
+  private calculateSatisfactionMetrics() {
+    const resolvedComplaints = this.complaints.filter(c => c.status === 'Resolved');
+    if (resolvedComplaints.length === 0) {
+      this.satisfactionRate = 0;
+      this.satisfactionChange = 0;
+      this.isSatisfactionImproved = false;
+      return;
+    }
+
+    // For demo purposes, calculate based on resolution time
+    const quickResolutions = resolvedComplaints.filter(complaint => {
+      const createdDate = new Date(complaint.dates.created);
+      const resolvedDate = new Date(complaint.dates.updated);
+      const daysToResolve = (resolvedDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+      return daysToResolve <= 3; // Resolved within 3 days
+    });
+
+    this.satisfactionRate = (quickResolutions.length / resolvedComplaints.length) * 100;
+    this.satisfactionChange = 5; // Assume 5% improvement
+    this.isSatisfactionImproved = true;
+  }
+
+  // Calculate efficiency metrics
+  private calculateEfficiencyMetrics() {
+    if (this.totalComplaints === 0) {
+      this.efficiencyScore = 0;
+      this.efficiencyChange = 0;
+      this.isEfficiencyImproved = false;
+      return;
+    }
+
+    // Calculate efficiency based on resolution rate and response time
+    const resolutionRate = (this.resolvedComplaints / this.totalComplaints) * 100;
+    const responseTimeScore = Math.max(0, 100 - (this.averageResponseTime / (1000 * 60 * 60 * 24))); // Days to hours
+    
+    this.efficiencyScore = (resolutionRate + responseTimeScore) / 2;
+    this.efficiencyChange = 8; // Assume 8% improvement
+    this.isEfficiencyImproved = true;
   }
 
   // Logout user
@@ -923,6 +1363,9 @@ export class GeneralUserDashboardComponent implements OnInit {
   async refreshComplaints() {
     this.loading = true;
     await this.loadComplaints();
+    // Ensure stats are updated after refresh
+    this.updateComplaintStats();
+    this.cdr.detectChanges();
   }
 
   // Get complaint status with proper formatting
@@ -931,28 +1374,6 @@ export class GeneralUserDashboardComponent implements OnInit {
       return 'Unknown';
     }
     return complaint.status;
-  }
-
-  // Get progress percentage for a complaint
-  getProgress(complaint: Complaint): number {
-    if (!complaint || !complaint.status) {
-      return 0;
-    }
-    
-    switch (complaint.status) {
-      case 'New':
-        return 10;
-      case 'PendingReview':
-        return 25;
-      case 'InProgress':
-        return 60;
-      case 'Resolved':
-        return 100;
-      case 'Closed':
-        return 100;
-      default:
-        return 0;
-    }
   }
 
   // Submit new complaint
@@ -1026,5 +1447,233 @@ export class GeneralUserDashboardComponent implements OnInit {
     } finally {
       this.submittingComplaint = false;
     }
+  }
+
+  openProfileModal(): void {
+    // Implement profile modal logic here
+    console.log('Open profile modal');
+  }
+
+  // Delete complaint methods
+  openDeleteConfirmModal(complaint: Complaint): void {
+    this.complaintToDelete = complaint;
+    this.showDeleteConfirmModal = true;
+  }
+
+  closeDeleteConfirmModal(): void {
+    this.showDeleteConfirmModal = false;
+    this.complaintToDelete = null;
+    this.deletingComplaint = false;
+  }
+
+  async confirmDeleteComplaint(): Promise<void> {
+    if (!this.complaintToDelete || !this.complaintToDelete.id) {
+      console.error('No complaint selected for deletion');
+      return;
+    }
+
+    try {
+      this.deletingComplaint = true;
+      
+      // Delete the complaint from the database
+      await this.complaintService.deleteComplaint(this.complaintToDelete.id);
+      
+      // Remove the complaint from the local array
+      this.complaints = this.complaints.filter(c => c.id !== this.complaintToDelete!.id);
+      
+      // Update statistics
+      this.updateComplaintStats();
+      
+      // Close the modal
+      this.closeDeleteConfirmModal();
+      
+      // Show success message (you can implement a notification service here)
+      console.log('Complaint deleted successfully');
+      
+    } catch (error) {
+      console.error('Error deleting complaint:', error);
+      // Show error message (you can implement a notification service here)
+      this.error = 'Failed to delete complaint. Please try again.';
+    } finally {
+      this.deletingComplaint = false;
+    }
+  }
+
+  // Reply functionality methods
+  getReplyCount(complaint: Complaint): number {
+    if (!complaint.updates) return 0;
+    // Count updates that are replies (not status updates)
+    return complaint.updates.filter(update => 
+      update.content && !update.content.includes('status') && !update.content.includes('assigned')
+    ).length;
+  }
+
+  openReplyModal(complaint: Complaint): void {
+    this.selectedComplaint = complaint;
+    this.showReplyModal = true;
+  }
+
+  closeReplyModal(): void {
+    this.showReplyModal = false;
+    this.selectedComplaint = null;
+  }
+
+  getReplies(complaint: Complaint | null): any[] {
+    if (!complaint || !complaint.updates) return [];
+    // Filter updates to get only replies (not status updates)
+    return complaint.updates.filter(update => 
+      update.content && !update.content.includes('status') && !update.content.includes('assigned')
+    );
+  }
+
+  getReplierName(updatedBy: string): string {
+    // This would need to be enhanced to get actual user names from a user service
+    // For now, return a formatted version of the user ID
+    if (updatedBy === 'system') return 'System';
+    if (updatedBy.includes('admin')) return 'Administrator';
+    return updatedBy || 'Unknown User';
+  }
+
+  getReplierRole(updatedBy: string): string {
+    // Determine role based on user ID or other logic
+    if (updatedBy === 'system') return 'System';
+    
+    // Check for specific admin types
+    const lowerUpdatedBy = updatedBy.toLowerCase();
+    
+    if (lowerUpdatedBy.includes('overall') || lowerUpdatedBy.includes('super') || lowerUpdatedBy.includes('master')) {
+      return 'Overall Admin';
+    }
+    
+    if (lowerUpdatedBy.includes('department') || lowerUpdatedBy.includes('dept') || lowerUpdatedBy.includes('water') || 
+        lowerUpdatedBy.includes('roads') || lowerUpdatedBy.includes('waste') || lowerUpdatedBy.includes('general')) {
+      return 'Department Admin';
+    }
+    
+    if (lowerUpdatedBy.includes('admin') || lowerUpdatedBy.includes('administrator')) {
+      return 'Administrator';
+    }
+    
+    // Check for specific department names
+    const departments = ['water', 'sanitation', 'roads', 'transport', 'waste', 'management', 'general', 'services'];
+    if (departments.some(dept => lowerUpdatedBy.includes(dept))) {
+      return 'Department Admin';
+    }
+    
+    return 'Staff Member';
+  }
+
+  openDeleteReplyConfirmModal(complaint: Complaint, replyIndex: number): void {
+    this.replyToDelete = { complaint, index: replyIndex };
+    this.showDeleteReplyConfirmModal = true;
+  }
+
+  closeDeleteReplyConfirmModal(): void {
+    this.showDeleteReplyConfirmModal = false;
+    this.replyToDelete = null;
+  }
+
+  async confirmDeleteReply(): Promise<void> {
+    if (!this.replyToDelete) return;
+
+    const { complaint, index } = this.replyToDelete;
+    await this.deleteReply(complaint, index);
+    this.closeDeleteReplyConfirmModal();
+  }
+
+  getReplyContentToDelete(): string {
+    if (!this.replyToDelete || !this.replyToDelete.complaint || !this.replyToDelete.complaint.updates) {
+      return 'No content available';
+    }
+    
+    const { complaint, index } = this.replyToDelete;
+    if (index === undefined || index < 0 || index >= complaint.updates.length) {
+      return 'No content available';
+    }
+    
+    return complaint.updates[index]?.content || 'No content available';
+  }
+
+  async deleteReply(complaint: Complaint, replyIndex: number): Promise<void> {
+    if (!complaint || !complaint.updates || replyIndex < 0 || replyIndex >= complaint.updates.length) {
+      console.error('Invalid reply or complaint');
+      return;
+    }
+
+    try {
+      // Remove the reply from the updates array
+      const updatedUpdates = complaint.updates.filter((_, index) => index !== replyIndex);
+      
+      // Update local complaint data first
+      const complaintIndex = this.complaints.findIndex(c => c.id === complaint.id);
+      if (complaintIndex !== -1) {
+        this.complaints[complaintIndex].updates = updatedUpdates;
+      }
+      
+      // Manually update the updates array in the database
+      const complaintRef = doc(this.firebaseService.getFirestore(), 'complaints', complaint.id!);
+      await updateDoc(complaintRef, {
+        updates: updatedUpdates,
+        'dates.updated': new Date().toISOString()
+      });
+      
+      console.log('Reply deleted successfully');
+    } catch (error) {
+      console.error('Error deleting reply:', error);
+    }
+  }
+
+  formatReplyDate(timestamp: string): string {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  showInsightsModal = false;
+  aiInsightsList = [
+    'Harare is known as the "Sunshine City" for its beautiful weather and vibrant atmosphere. ☀️🌳',
+    'The city boasts lush gardens, tree-lined avenues, and a welcoming community spirit. 🌺🌳🤝',
+    'Harare is a hub for arts, culture, and innovation in Southern Africa. 🎨🎶💡',
+    'Enjoy year-round mild temperatures and plenty of sunshine, making it ideal for outdoor activities. 🌞🏞️',
+    "Harare's markets, restaurants, and festivals offer a taste of Zimbabwean hospitality and creativity. 🍲🎉🛍️",
+    'Recent city initiatives focus on smart infrastructure, clean energy, and sustainable urban growth. 🌱🏙️🔋',
+    "The city's education and healthcare sectors are among the best in the region. 🎓🏥",
+    "Harare's vibrant nightlife and cultural scene attract visitors from across Africa. 🌃🎭",
+    'The city is a leader in digital transformation and e-governance in Zimbabwe. 💻📊',
+    "Harare's parks and recreational spaces are perfect for families and nature lovers. 🌳👨‍👩‍👧‍👦",
+  ];
+  currentInsightIndex = 0;
+  showTrendsModal = false;
+  trendsAndRisksList = [
+    'There is a rising trend in water supply complaints during the dry season. 💧📈',
+    'Road infrastructure complaints spike after heavy rains, indicating a need for improved drainage and road repairs. 🚧🌧️',
+    'Waste management issues are more frequent in high-density suburbs. 🗑️🏘️',
+    'Seasonal disease outbreaks, such as cholera, are linked to water and sanitation challenges in certain areas. 🦠🚱',
+    'Community engagement can reduce illegal dumping and improve city cleanliness. 🤝♻️',
+    'Smart city initiatives are helping to monitor and address emerging risks in real time. 📡🛡️',
+    'Resource shortages, especially water and electricity, remain a key risk during peak demand periods. 💡🚱',
+    'Public transport disruptions are more likely during the rainy season. 🚌🌧️',
+    'Digital literacy programs are reducing risks associated with cyber threats. 🖥️🔒',
+    'Climate change is increasing the frequency of extreme weather events, impacting city infrastructure. 🌦️🏗️',
+  ];
+  currentTrendIndex = 0;
+  openInsightsModal() {
+    this.showInsightsModal = true;
+    this.currentInsightIndex = 0;
+  }
+  showNextInsight() {
+    this.currentInsightIndex = (this.currentInsightIndex + 1) % this.aiInsightsList.length;
+  }
+  openTrendsModal() {
+    this.showTrendsModal = true;
+    this.currentTrendIndex = 0;
+  }
+  showNextTrend() {
+    this.currentTrendIndex = (this.currentTrendIndex + 1) % this.trendsAndRisksList.length;
   }
 }

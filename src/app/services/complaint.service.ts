@@ -1,11 +1,70 @@
 import { Injectable, NgZone } from '@angular/core';
 import { Firestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, orderBy, arrayUnion } from 'firebase/firestore';
 import { Observable, BehaviorSubject, from } from 'rxjs';
-import { Complaint, Status } from '../models/complaint.model';
+import { Complaint, Status, Priority, Department } from '../models/complaint.model';
 import { FirebaseService } from './firebase.service';
 import { ActivityService } from './activity.service';
 import { NotificationService } from './notification.service';
 
+/**
+ * Complaint Reply Interface - Defines the structure of reply data
+ * 
+ * This interface represents a reply or update to a complaint,
+ * allowing for communication between users and administrators.
+ */
+export interface ComplaintReply {
+  id?: string;           // Unique reply ID
+  complaintId: string;   // ID of the complaint being replied to
+  message: string;       // Reply message content
+  repliedBy: string;     // User ID who sent the reply
+  repliedByName?: string;  // Display name of replier
+  repliedAt: Date;       // Timestamp of the reply
+  isInternal?: boolean;  // Whether this is an internal note (not visible to general users)
+}
+
+/**
+ * Complaint Statistics Interface - Defines complaint analytics data
+ * 
+ * This interface represents aggregated statistics for dashboard displays
+ * and reporting purposes.
+ */
+export interface ComplaintStats {
+  total: number;         // Total number of complaints
+  pending: number;       // Number of pending complaints
+  inProgress: number;    // Number of complaints in progress
+  resolved: number;      // Number of resolved complaints
+  closed: number;        // Number of closed complaints
+  byPriority: {          // Complaints grouped by priority
+    Low: number;
+    Medium: number;
+    High: number;
+    Critical: number;
+  };
+  byCategory: { [key: string]: number };  // Complaints grouped by category
+  byDepartment: { [key: string]: number };  // Complaints grouped by department
+}
+
+/**
+ * Complaint Service - Core Complaint Management
+ * 
+ * This service handles all complaint-related operations for the
+ * Harare City Complaints System, including:
+ * 
+ * - Complaint CRUD operations (Create, Read, Update, Delete)
+ * - Real-time complaint tracking and updates
+ * - Complaint assignment and status management
+ * - Reply and communication handling
+ * - Statistics and analytics generation
+ * - Search and filtering capabilities
+ * 
+ * Features:
+ * - Real-time data synchronization with Firestore
+ * - Role-based complaint access and management
+ * - Comprehensive status tracking
+ * - Image upload support
+ * - Reply system for communication
+ * - Analytics and reporting capabilities
+ */
 @Injectable({
   providedIn: 'root'
 })
@@ -14,6 +73,21 @@ export class ComplaintService {
   private complaintsCollection = 'complaints';
   private complaintsSubject = new BehaviorSubject<Complaint[]>([]);
   public complaints$ = this.complaintsSubject.asObservable();
+
+  private statsSubject = new BehaviorSubject<ComplaintStats>({
+    total: 0,
+    pending: 0,
+    inProgress: 0,
+    resolved: 0,
+    closed: 0,
+    byPriority: { Low: 0, Medium: 0, High: 0, Critical: 0 },
+    byCategory: {},
+    byDepartment: {}
+  });
+  public stats$ = this.statsSubject.asObservable();
+
+  // Real-time listeners for automatic cleanup
+  private complaintsListener: (() => void) | null = null;
 
   constructor(
     private firebaseService: FirebaseService,
@@ -25,6 +99,12 @@ export class ComplaintService {
     this.setupComplaintsListener();
   }
 
+  /**
+   * Setup real-time complaints listener
+   * 
+   * Initializes the real-time listener for complaints collection
+   * to automatically update the local state when changes occur.
+   */
   private setupComplaintsListener(): void {
     const complaintsRef = collection(this.firestore, this.complaintsCollection);
     const complaintsQuery = query(complaintsRef, orderBy('dates.created', 'desc'));
@@ -37,6 +117,7 @@ export class ComplaintService {
           complaints.push({ id: doc.id, ...data });
         });
         this.complaintsSubject.next(complaints);
+        this.updateStats(complaints);
       });
     }, (error) => {
       console.error('Error fetching complaints:', error);
@@ -46,7 +127,12 @@ export class ComplaintService {
     });
   }
 
-  // Get complaints for a specific department
+  /**
+   * Get complaints for a specific department
+   * 
+   * @param department - Department to filter complaints by
+   * @returns Observable<Complaint[]> - Stream of department complaints
+   */
   getComplaintsByDepartment(department: string): Observable<Complaint[]> {
     const complaintsRef = collection(this.firestore, this.complaintsCollection);
     const departmentQuery = query(complaintsRef, 
@@ -72,7 +158,12 @@ export class ComplaintService {
     });
   }
 
-  // Get complaints for a specific user
+  /**
+   * Get complaints for a specific user
+   * 
+   * @param userId - User ID to filter complaints by
+   * @returns Observable<Complaint[]> - Stream of user complaints
+   */
   getComplaintsByUser(userId: string): Observable<Complaint[]> {
     const complaintsRef = collection(this.firestore, this.complaintsCollection);
     const userQuery = query(complaintsRef, 
@@ -98,32 +189,24 @@ export class ComplaintService {
     });
   }
 
-  // Submit a new complaint
+  /**
+   * Add a new complaint to the system
+   * 
+   * @param complaint - Complaint data to add
+   * @returns Promise<string> - Generated complaint ID
+   */
   async addComplaint(complaint: Omit<Complaint, 'id'>): Promise<string> {
     try {
-      // Add timestamp
-      const complaintWithTimestamps = {
-        ...complaint,
-        dates: {
-          ...complaint.dates,
-          created: new Date().toISOString(),
-          updated: new Date().toISOString()
-        }
-      };
-
-      const docRef = await addDoc(
-        collection(this.firestore, this.complaintsCollection),
-        complaintWithTimestamps
-      );
-
+      const docRef = await addDoc(collection(this.firestore, this.complaintsCollection), complaint);
+      
       // Log activity
-      this.activityService.logActivity(
+      await this.activityService.logActivity(
         'complaint_created',
-        `New complaint submitted: ${complaint.title}`,
+        `New complaint created: ${complaint.title}`,
         docRef.id
       );
 
-      this.notificationService.showSuccess('Complaint submitted successfully');
+      console.log('Complaint added successfully with ID:', docRef.id);
       return docRef.id;
     } catch (error) {
       console.error('Error adding complaint:', error);
@@ -132,7 +215,14 @@ export class ComplaintService {
     }
   }
 
-  // Update a complaint's status
+  /**
+   * Update complaint status
+   * 
+   * @param complaintId - ID of the complaint to update
+   * @param newStatus - New status to set
+   * @param updateNote - Optional note about the status change
+   * @param updatedBy - User ID making the update
+   */
   async updateComplaintStatus(
     complaintId: string, 
     newStatus: Status, 
@@ -142,7 +232,12 @@ export class ComplaintService {
     try {
       const complaintRef = doc(this.firestore, this.complaintsCollection, complaintId);
       
-      // Create a new update entry
+      const updateData: any = {
+        status: newStatus,
+        'dates.updated': new Date().toISOString()
+      };
+
+      // Add update to the updates array
       const update = {
         timestamp: new Date().toISOString(),
         content: updateNote,
@@ -151,33 +246,18 @@ export class ComplaintService {
       };
 
       await updateDoc(complaintRef, {
-        status: newStatus,
-        'dates.updated': new Date().toISOString(),
+        ...updateData,
         updates: arrayUnion(update)
       });
 
-      // If the status is resolved, add the resolved date
-      if (newStatus === 'Resolved') {
-        await updateDoc(complaintRef, {
-          'dates.resolved': new Date().toISOString()
-        });
-      }
-
-      // If the status is closed, add the closed date
-      if (newStatus === 'Closed') {
-        await updateDoc(complaintRef, {
-          'dates.closed': new Date().toISOString()
-        });
-      }
-
       // Log activity
-      this.activityService.logActivity(
-        'complaint_updated',
-        `Complaint status updated to ${newStatus}: ${updateNote}`,
+      await this.activityService.logActivity(
+        'complaint_status_updated',
+        `Complaint status updated to ${newStatus}`,
         complaintId
       );
 
-      this.notificationService.showSuccess(`Complaint status updated to ${newStatus}`);
+      console.log(`Complaint ${complaintId} status updated to ${newStatus}`);
     } catch (error) {
       console.error('Error updating complaint status:', error);
       this.notificationService.showError('Failed to update complaint status');
@@ -185,7 +265,13 @@ export class ComplaintService {
     }
   }
 
-  // Add a reply to a complaint
+  /**
+   * Add reply to complaint
+   * 
+   * @param complaintId - ID of the complaint to reply to
+   * @param replyContent - Reply message content
+   * @param repliedBy - User ID sending the reply
+   */
   async addReplyToComplaint(
     complaintId: string,
     replyContent: string,
@@ -194,7 +280,6 @@ export class ComplaintService {
     try {
       const complaintRef = doc(this.firestore, this.complaintsCollection, complaintId);
       
-      // Create a new update entry
       const update = {
         timestamp: new Date().toISOString(),
         content: replyContent,
@@ -206,14 +291,7 @@ export class ComplaintService {
         updates: arrayUnion(update)
       });
 
-      // Log activity
-      this.activityService.logActivity(
-        'complaint_reply',
-        `Reply added to complaint: ${replyContent.substring(0, 30)}...`,
-        complaintId
-      );
-
-      this.notificationService.showSuccess('Reply added successfully');
+      console.log(`Reply added to complaint ${complaintId}`);
     } catch (error) {
       console.error('Error adding reply to complaint:', error);
       this.notificationService.showError('Failed to add reply');
@@ -221,56 +299,72 @@ export class ComplaintService {
     }
   }
 
-  // Assign a complaint to a department or officer
+  /**
+   * Update complaint updates array
+   * 
+   * @param complaintId - ID of the complaint to update
+   * @param updates - New updates array
+   */
+  async updateComplaintUpdates(
+    complaintId: string, 
+    updates: any[]
+  ): Promise<void> {
+    try {
+      const complaintRef = doc(this.firestore, this.complaintsCollection, complaintId);
+      
+      await updateDoc(complaintRef, {
+        updates: updates,
+        'dates.updated': new Date().toISOString()
+      });
+
+      console.log(`Complaint updates updated for ${complaintId}`);
+    } catch (error) {
+      console.error('Error updating complaint updates:', error);
+      this.notificationService.showError('Failed to update complaint updates');
+      throw error;
+    }
+  }
+
+  /**
+   * Assign complaint to department
+   * 
+   * @param complaintId - ID of the complaint to assign
+   * @param departmentId - Department ID to assign to
+   * @param departmentName - Department name
+   * @param officerId - Optional officer ID
+   * @param officerName - Optional officer name
+   */
   async assignComplaint(
     complaintId: string,
     departmentId: string,
-    departmentName: string,
+    departmentName: Department,
     officerId?: string,
     officerName?: string
   ): Promise<void> {
     try {
       const complaintRef = doc(this.firestore, this.complaintsCollection, complaintId);
       
-      const assignmentData: any = {
-        'assignedTo.departmentId': departmentId,
-        'assignedTo.departmentName': departmentName,
-        status: 'Assigned',
-        'dates.updated': new Date().toISOString()
+      const assignedTo = {
+        departmentId: departmentId,
+        departmentName: departmentName,
+        officerId: officerId,
+        officerName: officerName
       };
-
-      // Add officer info if provided
-      if (officerId && officerName) {
-        assignmentData['assignedTo.officerId'] = officerId;
-        assignmentData['assignedTo.officerName'] = officerName;
-      }
-
-      await updateDoc(complaintRef, assignmentData);
-
-      // Create a new update entry
-      const updateNote = officerId 
-        ? `Assigned to ${departmentName} department, officer: ${officerName}`
-        : `Assigned to ${departmentName} department`;
 
       const update = {
         timestamp: new Date().toISOString(),
-        content: updateNote,
-        updatedBy: 'System',
-        newStatus: 'Assigned'
+        content: `Complaint assigned to ${departmentName}`,
+        updatedBy: 'system'
       };
 
       await updateDoc(complaintRef, {
+        assignedTo: assignedTo,
+        status: 'Assigned' as Status,
+        'dates.updated': new Date().toISOString(),
         updates: arrayUnion(update)
       });
 
-      // Log activity
-      this.activityService.logActivity(
-        'complaint_assigned',
-        updateNote,
-        complaintId
-      );
-
-      this.notificationService.showSuccess(`Complaint assigned to ${departmentName}`);
+      console.log(`Complaint ${complaintId} assigned to ${departmentName}`);
     } catch (error) {
       console.error('Error assigning complaint:', error);
       this.notificationService.showError('Failed to assign complaint');
@@ -278,28 +372,216 @@ export class ComplaintService {
     }
   }
 
-  // Delete a complaint
+  /**
+   * Delete complaint
+   * 
+   * @param complaintId - ID of the complaint to delete
+   */
   async deleteComplaint(complaintId: string): Promise<void> {
     try {
       await deleteDoc(doc(this.firestore, this.complaintsCollection, complaintId));
-
-      // Log activity
-      this.activityService.logActivity(
-        'complaint_deleted',
-        `Complaint deleted`,
-        complaintId
-      );
-
-      // Wrap notification in NgZone to avoid ExpressionChangedAfterItHasBeenCheckedError
-      setTimeout(() => {
-        this.ngZone.run(() => {
-          this.notificationService.showSuccess('Complaint deleted successfully');
-        });
-      }, 0);
+      console.log(`Complaint ${complaintId} deleted successfully`);
     } catch (error) {
       console.error('Error deleting complaint:', error);
       this.notificationService.showError('Failed to delete complaint');
       throw error;
     }
+  }
+
+  /**
+   * Initialize complaints listener with filters
+   * 
+   * @param filters - Optional filters to apply
+   */
+  initializeComplaintsListener(filters?: Array<{ field: string; operator: any; value: any }>) {
+    // Clean up existing listener if any
+    if (this.complaintsListener) {
+      this.complaintsListener();
+    }
+
+    // Set up new real-time listener
+    this.complaintsListener = this.firebaseService.onCollectionSnapshot(
+      'complaints',
+      (complaints: Complaint[]) => {
+        this.complaintsSubject.next(complaints);
+        this.updateStats(complaints);
+      },
+      filters,
+      'dates.created',
+      'desc'
+    );
+  }
+
+  /**
+   * Clean up real-time listeners
+   */
+  cleanup() {
+    if (this.complaintsListener) {
+      this.complaintsListener();
+      this.complaintsListener = null;
+    }
+  }
+
+  /**
+   * Submit a new complaint
+   * 
+   * @param complaintData - Complaint data without ID and timestamps
+   * @returns Promise<string> - The generated complaint ID
+   */
+  async submitComplaint(complaintData: Omit<Complaint, 'id' | 'dates'>): Promise<string> {
+    try {
+      const now = new Date().toISOString();
+      const complaint: Omit<Complaint, 'id'> = {
+        ...complaintData,
+        dates: {
+          created: now,
+          updated: now
+        }
+      };
+
+      const complaintId = await this.firebaseService.addDocument('complaints', complaint);
+      console.log(`Complaint submitted successfully with ID: ${complaintId}`);
+      return complaintId;
+    } catch (error) {
+      console.error('Error submitting complaint:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get complaint by ID
+   * 
+   * @param complaintId - ID of the complaint to retrieve
+   * @returns Promise<Complaint | null> - Complaint data or null if not found
+   */
+  async getComplaint(complaintId: string): Promise<Complaint | null> {
+    try {
+      const complaint = await this.firebaseService.getDocument('complaints', complaintId);
+      return complaint;
+    } catch (error) {
+      console.error(`Error getting complaint ${complaintId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get complaints with filters
+   * 
+   * @param filters - Optional array of filter conditions
+   * @param sortBy - Optional field to sort by
+   * @param sortOrder - Optional sort order
+   * @param limitCount - Optional limit on number of complaints
+   * @returns Promise<Complaint[]> - Array of filtered complaints
+   */
+  async getComplaints(
+    filters?: Array<{ field: string; operator: any; value: any }>,
+    sortBy?: string,
+    sortOrder: 'asc' | 'desc' = 'desc',
+    limitCount?: number
+  ): Promise<Complaint[]> {
+    try {
+      const complaints = await this.firebaseService.getCollection(
+        'complaints',
+        filters,
+        sortBy,
+        sortOrder,
+        limitCount
+      );
+
+      return complaints;
+    } catch (error) {
+      console.error('Error getting complaints:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Update complaint statistics
+   * 
+   * @param complaints - Array of complaints to analyze
+   */
+  private updateStats(complaints: Complaint[]) {
+    const stats: ComplaintStats = {
+      total: complaints.length,
+      pending: 0,
+      inProgress: 0,
+      resolved: 0,
+      closed: 0,
+      byPriority: { Low: 0, Medium: 0, High: 0, Critical: 0 },
+      byCategory: {},
+      byDepartment: {}
+    };
+
+    complaints.forEach(complaint => {
+      // Count by status
+      switch (complaint.status) {
+        case 'New':
+        case 'PendingReview':
+          stats.pending++;
+          break;
+        case 'Assigned':
+        case 'InProgress':
+          stats.inProgress++;
+          break;
+        case 'Resolved':
+          stats.resolved++;
+          break;
+        case 'Closed':
+          stats.closed++;
+          break;
+      }
+
+      // Count by priority
+      if (complaint.priority) {
+        stats.byPriority[complaint.priority]++;
+      }
+
+      // Count by category
+      if (complaint.category) {
+        stats.byCategory[complaint.category] = (stats.byCategory[complaint.category] || 0) + 1;
+      }
+
+      // Count by department
+      if (complaint.department) {
+        stats.byDepartment[complaint.department] = (stats.byDepartment[complaint.department] || 0) + 1;
+      }
+    });
+
+    this.statsSubject.next(stats);
+  }
+
+  /**
+   * Get current complaints
+   * 
+   * @returns Complaint[] - Current complaints from the reactive stream
+   */
+  getCurrentComplaints(): Complaint[] {
+    return this.complaintsSubject.value;
+  }
+
+  /**
+   * Get current statistics
+   * 
+   * @returns ComplaintStats - Current statistics from the reactive stream
+   */
+  getCurrentStats(): ComplaintStats {
+    return this.statsSubject.value;
+  }
+
+  /**
+   * Search complaints by text
+   * 
+   * @param searchTerm - Text to search for
+   * @returns Complaint[] - Array of matching complaints
+   */
+  searchComplaints(searchTerm: string): Complaint[] {
+    const complaints = this.getCurrentComplaints();
+    const term = searchTerm.toLowerCase();
+    
+    return complaints.filter(complaint => 
+      complaint.title.toLowerCase().includes(term) ||
+      complaint.description.toLowerCase().includes(term) ||
+      complaint.location.address.toLowerCase().includes(term)
+    );
   }
 }

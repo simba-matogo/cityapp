@@ -11,6 +11,7 @@ export interface User {
   role: string;
   department?: string;
   createdAt?: any;
+  approved?: boolean; // Added approval field
 }
 
 @Injectable({
@@ -41,10 +42,14 @@ export class UserService {
       onSnapshot(usersQuery, (snapshot) => {
         const users: User[] = [];
         snapshot.forEach((doc) => {
-          users.push({
-            id: doc.id,
-            ...doc.data()
-          } as User);
+          const userData = doc.data() as any;
+          // Only include active users (not deleted)
+          if (userData.status !== 'deleted') {
+            users.push({
+              id: doc.id,
+              ...userData
+            } as User);
+          }
         });
         
         this.usersSubject.next(users);
@@ -93,6 +98,7 @@ export class UserService {
     try {
       await this.firebaseService.addDocument('users', {
         ...userData,
+        approved: userData.role === 'generaluser' ? true : false, // Default approval logic
         createdAt: new Date()
       });
     } catch (error) {

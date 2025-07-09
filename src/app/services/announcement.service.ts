@@ -17,7 +17,9 @@ export class AnnouncementService {
   // Load all active announcements
   async loadAnnouncements() {
     try {
-      const announcements = await this.firebaseService.queryDocuments('announcements', 'isActive', '==', true);
+      const announcements = await this.firebaseService.getCollection('announcements', [
+        { field: 'isActive', operator: '==', value: true }
+      ]);
       
       // Sort by creation date (newest first)
       const sortedAnnouncements = (announcements as Announcement[]).sort((a, b) => 

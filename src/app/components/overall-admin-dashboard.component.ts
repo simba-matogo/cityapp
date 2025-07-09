@@ -1,27 +1,31 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, Inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../services/notification.service';
 import { AuthService } from '../services/auth.service';
 import { Subscription } from 'rxjs';
 import { FirebaseService } from '../services/firebase.service';
-import { onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
 import { ActivityService } from '../services/activity.service';
 import { ThemeService } from '../services/theme.service';
 import { UserService } from '../services/user.service';
 import { ComplaintService } from '../services/complaint.service';
 import { AnnouncementService } from '../services/announcement.service';
-import { Complaint, Status } from '../models/complaint.model';
+import { DepartmentService } from '../services/department.service';
+import { Complaint, Status, Priority } from '../models/complaint.model';
 import { Announcement } from '../models/announcement.model';
+import { AiPoweredFeaturesComponent } from './ai-powered-features.component';
+import { AiChatComponent } from './ai-chat.component';
+import { NotificationContainerComponent } from './notification-container.component';
 
 
 @Component({
   selector: 'app-overall-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AiPoweredFeaturesComponent, AiChatComponent, NotificationContainerComponent],
   providers: [NotificationService],
   template: `
     <div class="min-h-screen flex flex-col" [class]="isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-100 to-blue-50'">
+      <app-notification-container></app-notification-container>
       <!-- Modern Navbar -->
       <nav class="sticky top-0 z-50 w-full backdrop-blur-lg border-b shadow-sm" 
            [class]="isDarkMode ? 'bg-gray-800/80 border-gray-700' : 'bg-white/80 border-slate-200'">
@@ -50,26 +54,26 @@ import { Announcement } from '../models/announcement.model';
               
               <!-- User Menu -->
               <div class="relative group">
-                <button class="flex items-center gap-2 p-2 rounded-full transition" 
-                        [class]="isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-blue-50'">
-                  <span class="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white font-medium">
+                <button class="flex items-center p-1 rounded-full transition bg-white border border-slate-200 shadow-sm hover:bg-slate-100 h-9 w-9">
+                  <span class="h-7 w-7 rounded-full bg-slate-200 flex items-center justify-center text-base font-bold text-slate-700 border border-slate-300">
                     {{adminName[0]}}
                   </span>
-                  <span class="hidden sm:block font-medium" [class]="isDarkMode ? 'text-gray-200' : 'text-slate-700'">{{adminName}}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" [class]="isDarkMode ? 'text-gray-400' : 'text-slate-400'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                <div class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border invisible group-hover:visible transition-all" 
-                     [class]="isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200'">
-                  <div class="p-3 border-b" [class]="isDarkMode ? 'border-gray-700' : 'border-slate-200'">
-                    <p class="text-sm font-medium" [class]="isDarkMode ? 'text-gray-200' : 'text-slate-700'">{{adminName}}</p>
-                    <p class="text-xs" [class]="isDarkMode ? 'text-gray-400' : 'text-slate-500'">{{adminRole}}</p>
+                <div class="absolute right-0 mt-2 w-60 rounded-xl shadow-lg border border-slate-200 bg-white z-50 invisible group-hover:visible transition-all">
+                  <div class="flex flex-col items-center p-5 border-b border-slate-100">
+                    <span class="h-14 w-14 rounded-full bg-slate-200 flex items-center justify-center text-2xl font-bold text-slate-700 border border-slate-300 mb-2">
+                      {{adminName[0]}}
+                    </span>
+                    <div class="font-bold text-slate-800 text-lg">{{adminName}}</div>
+                    <div class="text-xs text-slate-500 font-medium mt-1">{{adminRole}}</div>
                   </div>
-                  <div class="p-2">
-                    <button class="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md transition">Profile Settings</button>
-                    <button class="w-full texts-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md transition">System Config</button>
-                    <button (click)="logout()" class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition">Logout</button>
+                  <div class="flex flex-col p-3 gap-2">
+                    <button class="w-full text-left px-4 py-2 rounded-lg font-medium text-slate-700 hover:bg-slate-100 transition" (click)="openProfileModal()">Profile Settings</button>
+                    <button class="w-full text-left px-4 py-2 rounded-lg font-medium text-slate-700 hover:bg-slate-100 transition" (click)="showAboutModal = true">About</button>
+                    <button (click)="logout()" class="w-full text-left px-4 py-2 rounded-lg font-medium text-red-600 hover:bg-red-50 transition">Logout</button>
                   </div>
                 </div>
               </div>
@@ -116,8 +120,8 @@ import { Announcement } from '../models/announcement.model';
       <div class="flex-1 flex flex-col items-center pt-8 pb-8 px-1 sm:px-2">
         <!-- Profile Card & AI Assistant -->
         <div class="w-full max-w-5xl flex flex-col gap-4 mb-6 md:flex-row md:gap-4">
-          <!-- Super Admin Card (icon left, text right, reduced size) -->
-          <div class="bg-gradient-to-br from-blue-100/80 to-white/80 backdrop-blur rounded-xl border border-blue-200 shadow p-3 flex flex-row items-center w-full md:w-60 h-28">
+          <!-- Super Admin Card (Profile Settings) -->
+          <div class="bg-gradient-to-br from-blue-100/80 to-white/80 backdrop-blur rounded-xl border border-blue-200 shadow p-3 flex flex-row items-center flex-1 h-28 mx-4 sm:mx-8 md:basis-[32%]">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-10 w-10 text-blue-600 mr-3" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="8" r="4" />
               <path d="M6 20c0-2.21 3.58-4 6-4s6 1.79 6 4" />
@@ -125,23 +129,24 @@ import { Announcement } from '../models/announcement.model';
             <div class="flex flex-col items-start justify-center flex-1">
               <div class="font-semibold text-slate-700 text-sm">Super Admin</div>
               <div class="text-[11px] text-slate-500 mb-1">System-wide Management</div>
-              <button class="px-2 py-0.5 bg-blue-600 text-white rounded text-[11px] font-semibold hover:bg-blue-700 transition">Profile Settings</button>
+              <button class="px-2 py-0.5 bg-blue-600 text-white rounded text-[11px] font-semibold hover:bg-blue-700 transition" (click)="openProfileModal()">Profile Settings</button>
             </div>
           </div>
-          <!-- AI Chat Assistant (reduced size) -->
-          <div class="bg-gradient-to-br from-blue-100/80 to-white/80 backdrop-blur rounded-xl border border-blue-200 shadow p-2 flex flex-col items-center justify-center w-full md:w-40 h-24">
-            <div class="flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-7 w-7 text-purple-600" fill="none" stroke="currentColor" stroke-width="2">
+          <!-- AI Chat Assistant -->
+          <div class="bg-gradient-to-br from-blue-100/80 to-white/80 backdrop-blur rounded-xl border border-blue-200 shadow p-3 flex flex-row items-center flex-1 h-28 mx-4 sm:mx-8 md:basis-[32%]">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-10 w-10 text-purple-600 mr-3" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M8 15s1.5 2 4 2 4-2 4-2" />
                 <path d="M9 9h.01M15 9h.01" />
               </svg>
-              <span class="font-semibold text-slate-700 text-xs">AI Assistant</span>
+            <div class="flex flex-col items-start justify-center flex-1">
+              <div class="font-semibold text-slate-700 text-sm">AI Assistant</div>
+              <div class="text-[11px] text-slate-500 mb-1">Ask questions about city data, complaints, or trends</div>
+              <button class="px-2 py-0.5 bg-purple-600 text-white rounded text-[11px] font-semibold hover:bg-purple-700 transition" (click)="openAiChat()">Ask AI</button>
             </div>
-            <button class="mt-1 px-2 py-0.5 bg-purple-600 text-white rounded text-[10px] font-semibold hover:bg-purple-700 transition">Ask AI</button>
           </div>
-          <!-- Manage Users Card (icon left, text right, styled to match Super Admin) -->
-          <div class="bg-gradient-to-br from-blue-100/80 to-white/80 backdrop-blur rounded-xl border border-blue-200 shadow p-3 flex flex-row items-center w-full md:w-60 h-28">
+          <!-- Manage Users Card -->
+          <div class="bg-gradient-to-br from-blue-100/80 to-white/80 backdrop-blur rounded-xl border border-blue-200 shadow p-3 flex flex-row items-center flex-1 h-28 mx-4 sm:mx-8 md:basis-[32%]">
             <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='h-10 w-10 text-blue-600 mr-3' fill='none' stroke='currentColor' stroke-width='2'>
               <circle cx='8' cy='10' r='4'/>
               <circle cx='16' cy='10' r='4'/>
@@ -149,12 +154,12 @@ import { Announcement } from '../models/announcement.model';
             </svg>
             <div class="flex flex-col items-start justify-center flex-1">
               <div class="font-semibold text-slate-700 text-sm">Manage Users</div>
-              <div class="text-[11px] text-green-600 mb-1">Active Users: {{ generalUsers.length }}</div>
+              <div class="text-[11px] text-green-600 mb-1">Active Users: {{ totalUsersCount }}</div>
               <button class="px-2 py-0.5 bg-blue-600 text-white rounded text-[11px] font-semibold hover:bg-blue-700 transition w-full md:w-auto" (click)="openViewUsersModal()">View</button>
             </div>
           </div>
-          <!-- Manage Departments Card (icon left, text right, styled to match Super Admin) -->
-          <div class="bg-gradient-to-br from-blue-100/80 to-white/80 backdrop-blur rounded-xl border border-blue-200 shadow p-2 flex flex-col items-center w-full gap-2 md:flex-row md:items-center md:w-60 md:h-28">
+          <!-- Manage Departments Card -->
+          <div class="bg-gradient-to-br from-blue-100/80 to-white/80 backdrop-blur rounded-xl border border-blue-200 shadow p-2 flex flex-col items-center flex-1 gap-2 md:flex-row md:items-center h-28 mx-4 sm:mx-8 md:basis-[32%]">
             <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='h-10 w-10 text-blue-600 mb-2 md:mb-0 md:mr-3' fill='none' stroke='currentColor' stroke-width='2'>
               <circle cx='9' cy='10' r='4'/>
               <path d='M15.5 14a4.5 4.5 0 0 1 3.5 4.5V21M2 21v-2.5A4.5 4.5 0 0 1 5.5 14M19.4 15a2 2 0 0 0 .4-2.5l-1-1.7a2 2 0 0 0-2.5-.4l-1.7 1a2 2 0 0 0-.4 2.5l1 1.7a2 2 0 0 0 2.5.4l1.7-1z'/>
@@ -162,7 +167,7 @@ import { Announcement } from '../models/announcement.model';
             <div class="flex flex-col items-start justify-center flex-1 w-full">
               <div class="font-semibold text-slate-700 text-sm">Manage Departments</div>
               <div class="flex gap-2 mt-2 w-full">
-                <button class="px-2 py-0.5 bg-blue-600 text-white rounded text-[11px] font-semibold hover:bg-blue-700 transition w-full md:w-auto" (click)="showAddDepartmentModal = true">Add Department</button>
+                <button class="px-2 py-0.5 bg-blue-600 text-white rounded text-[11px] font-semibold hover:bg-blue-700 transition w-full md:w-auto" (click)="showAddDepartmentModal = true; refreshAdminData()">Add Department</button>
                 <button class="px-2 py-0.5 bg-green-600 text-white rounded text-[10px] font-semibold hover:bg-green-700 transition w-full md:w-auto" (click)="showAddAdminModal = true">Add Admin</button>
               </div>
             </div>
@@ -170,9 +175,9 @@ import { Announcement } from '../models/announcement.model';
         </div>
 
         <!-- Main Cards Section -->
-        <div class="w-full max-w-6xl grid grid-cols-1 gap-6 mb-6 md:grid-cols-2 md:gap-6">
+        <div class="w-full max-w-8xl grid grid-cols-1 gap-6 mb-6 md:grid-cols-2 md:gap-6">
           <!-- Complaints Management -->
-          <div class="bg-white/80 backdrop-blur rounded-xl border border-slate-100 shadow p-4 sm:p-6 flex flex-col">
+          <div class="bg-white/80 backdrop-blur rounded-xl border border-slate-100 shadow p-4 sm:p-6 flex flex-col md:col-span-2">
             <div class="flex items-center mb-2">
               <span class="bg-blue-100 text-blue-600 rounded-full p-2 mr-2 flex items-center justify-center">
                 <!-- Complaints Icon: Chat Bubble with Exclamation -->
@@ -184,187 +189,66 @@ import { Announcement } from '../models/announcement.model';
               </span>
               <h3 class="text-lg font-extrabold tracking-tight text-blue-700 ml-1">Complaints</h3>
             </div>
-            <div class="flex flex-col gap-3">
-              <!-- Complaint Cards (repeat for each complaint) -->
-              <div class="bg-slate-50/80 rounded p-3 flex flex-col gap-2 border border-slate-100 hover:shadow-lg transition group" *ngFor="let complaint of (viewAllComplaints ? complaints : complaints.slice(0, 4))">
-                <div class="flex items-center justify-between">
-                  <div class="font-semibold text-slate-700">{{ complaint.title }}</div>
-                  <span class="text-xs rounded px-2 py-0.5" [ngClass]="getStatusClass(complaint.status)">
-                    {{ formatStatus(complaint.status) }}
-                  </span>
+            <!-- Scrollable Complaints Container -->
+            <div class="max-h-96 overflow-y-auto pr-2">
+              <div class="flex flex-col gap-3">
+                <div *ngIf="loading" class="text-center text-slate-500 py-4">
+                  Loading complaints...
                 </div>
-                <div class="text-xs text-slate-600 line-clamp-2">{{ complaint.description }}</div>
-                <div class="flex items-center justify-between text-xs text-slate-500">
-                  <div>Department: <span class="font-medium">{{ complaint.department }}</span></div>
-                  <div>{{ complaint.dates.created | date:'MMM d, y' }}</div>
+                <div *ngIf="!loading && complaints.length === 0" class="text-center text-slate-500 py-4">
+                  No complaints found.
                 </div>
-                <div class="flex gap-2 mt-1 flex-wrap">
-                  <button class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition" 
-                    (click)="openReplyModal(complaint)">Reply</button>
-                  <button class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition" 
-                    (click)="openStatusModal(complaint, 'Resolved')">Resolved</button>
-                  <button class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition" 
-                    (click)="openStatusModal(complaint, 'InProgress')">In Progress</button>
-                  <button class="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition" 
-                    (click)="openStatusModal(complaint, 'PendingReview')">On Review</button>
-                  <button class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition" 
-                    (click)="openDeleteConfirmModal(complaint)">Delete</button>
-                </div>
-              </div>
-
-              <!-- Empty state if no complaints -->
-              <div *ngIf="complaints.length === 0" class="text-center py-8 text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-                <p>No complaints found</p>
-              </div>
-            </div>
-            <div class="flex justify-end mt-2">
-              <button (click)="viewAllComplaints = !viewAllComplaints" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold hover:bg-blue-200 transition">
-                {{ viewAllComplaints ? 'View Less' : 'View All' }}
-              </button>
-            </div>
-          </div>
-          <!-- Analytics & Reports and Trends & Risks stacked -->
-          <div class="flex flex-col gap-6">
-            <!-- Analytics & Reports Card -->
-            <div class="bg-gradient-to-br from-blue-100/80 to-white/80 backdrop-blur rounded-xl border border-blue-200 shadow p-4 flex flex-col h-[11.8rem] overflow-hidden">
-              <div class="flex items-center mb-1 justify-between w-full">
-                <span class="flex items-center">
-                  <span class="bg-blue-100 text-blue-600 rounded-full p-1 mr-1 flex items-center justify-center">
-                    <!-- Analytics/Report Icon: Network Bar (Signal Strength) -->
-                    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' class='h-5 w-5' fill='none'>
-                      <rect x='6' y='22' width='4' height='6' rx='1' fill='#2563eb'/>
-                      <rect x='12' y='18' width='4' height='10' rx='1' fill='#3b82f6'/>
-                      <rect x='18' y='12' width='4' height='16' rx='1' fill='#60a5fa'/>
-                      <rect x='24' y='6' width='4' height='22' rx='1' fill='#93c5fd'/>
-                    </svg>
-                  </span>
-                  <span class="font-semibold text-sm text-slate-800">Analytics & Reports</span>
-                </span>
-              </div>
-              <ul class="list-disc pl-4 text-xs text-slate-700 mb-2">
-                <li>Top Departments by Complaints</li>
-                <li>Time to Resolution (avg): 4.2 days</li>
-                <li>User Satisfaction Rate: 86%</li>
-                <li>Response Time: 2.3 hours (avg)</li>
-                <li>Most Active Time: 10:00 AM - 2:00 PM</li>
-                <li>Complaint Volume Trend: +12% (month-over-month)</li>
-              </ul>
-              <div class="mt-auto flex flex-row justify-center gap-2">
-                <button class="px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold tracking-wide" style="min-width:unset;">View Analytics</button>
-                <button class="px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold tracking-wide flex items-center" style="min-width:unset;">
-                  Report <span class="ml-1">📒</span>
-                </button>
-              </div>
-            </div>
-            <!-- AI Insights and Trends & Risks Row -->
-            <div class="w-full max-w-5xl flex flex-row gap-16">
-              <!-- AI Insights -->
-              <div class="bg-gradient-to-br from-purple-100/80 to-white/80 backdrop-blur rounded-xl border border-purple-200 shadow p-4 flex flex-col w-full md:w-60" style="min-height:11.76rem;">
-                <div class="flex items-center mb-1 justify-between w-full">
-                  <span class="flex items-center">
-                    <span class="bg-purple-100 text-purple-600 rounded-full p-1 mr-1 flex items-center justify-center">
-                      <!-- AI Insights Icon: Brain/AI -->
-                      <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='h-5 w-5' fill='none' stroke='currentColor' stroke-width='2'>
-                        <path d='M12 4a8 8 0 0 0-8 8c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4a8 8 0 0 0-8-8z' stroke='#a21caf' fill='#f3e8ff'/>
-                        <circle cx='9' cy='12' r='1.5' fill='#a21caf'/>
-                        <circle cx='15' cy='12' r='1.5' fill='#a21caf'/>
-                      </svg>
+                <!-- Complaint Cards -->
+                <div class="bg-slate-50/80 rounded p-3 flex flex-col gap-2 border border-slate-100 hover:shadow-lg transition group" 
+                     *ngFor="let complaint of complaints">
+                  <div class="flex items-center justify-between">
+                    <div class="font-semibold text-slate-700">{{ complaint.title }}</div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs rounded px-2 py-0.5" 
+                            [ngClass]="{
+                              'text-yellow-600 bg-yellow-100': complaint.status === 'New' || complaint.status === 'PendingReview', 
+                              'text-green-600 bg-green-100': complaint.status === 'Resolved', 
+                              'text-blue-600 bg-blue-100': complaint.status === 'InProgress',
+                              'text-red-600 bg-red-100': complaint.status === 'Reopened'
+                            }">
+                        {{ getComplaintStatus(complaint) }}
+                      </span>
+                      <span class="text-xs rounded px-2 py-0.5" 
+                            [ngClass]="getPriorityClass(complaint.priority)">
+                        {{ complaint.priority }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="text-xs text-slate-500 mb-1">
+                    {{complaint.dates.created | date:"MMM d, y 'at' h:mm a"}} • #{{complaint.id || 'C-' + (complaints.indexOf(complaint) + 1).toString().padStart(3, '0')}}
+                  </div>
+                  <div class="text-sm text-slate-600 mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    {{complaint.description}}
+                  </div>
+                  <div class="flex gap-2 mt-1 flex-wrap">
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {{complaint.department | titlecase}}
                     </span>
-                    <span class="font-semibold text-sm text-slate-800">AI Insights</span>
-                  </span>
-                </div>
-                <ul class="list-disc pl-4 text-xs text-slate-700 mb-2">
-                  <li *ngFor="let insight of aiInsights">{{ insight }}</li>
-                </ul>
-                <div class="mt-auto">
-                  <button class="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold tracking-wide mx-auto" style="min-width:unset;">View Insights</button>
-                </div>
-              </div>
-              <!-- Trends & Risks Card (already styled and sized) -->
-              <div class="bg-gradient-to-br from-blue-100/80 to-white/80 backdrop-blur rounded-xl border border-blue-200 shadow p-4 flex flex-col w-full md:w-60" style="min-height:11.76rem;">
-                <div class="flex items-center mb-1 justify-between w-full">
-                  <span class="flex items-center">
-                    <span class="bg-red-100 text-red-600 rounded-full p-1 mr-1 flex items-center justify-center">
-                      <!-- Trends & Risks Icon: Alert/Trend Graph -->
-                      <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='h-5 w-5' fill='none' stroke='currentColor' stroke-width='2'>
-                        <polyline points='3,17 9,11 13,15 21,7' fill='none' stroke='#dc2626' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/>
-                        <circle cx='3' cy='17' r='1.5' fill='#dc2626'/>
-                        <circle cx='9' cy='11' r='1.5' fill='#dc2626'/>
-                        <circle cx='13' cy='15' r='1.5' fill='#dc2626'/>
-                        <circle cx='21' cy='7' r='1.5' fill='#dc2626'/>
-                      </svg>
+                    <span *ngIf="complaint.category" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                      {{complaint.category}}
                     </span>
-                    <span class="font-semibold text-sm text-slate-800">Trends & Risks</span>
-                  </span>
-                </div>
-                <ul class="list-disc pl-4 text-xs text-slate-700 mb-2">
-                  <li>Emerging complaint patterns</li>
-                  <li>Departments at risk</li>
-                  <li>Seasonal risk factors</li>
-                  <li>Infrastructure vulnerabilities</li>
-                  <li>Community sentiment shifts</li>
-                  <li>Recent spikes in complaints</li>
-                  <li>Potential resource shortages</li>
-                </ul>
-                <div class="mt-auto">
-                  <button class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold tracking-wide mx-auto" style="min-width:unset;">View Trends</button>
+                  </div>
+                  <div class="flex gap-2 mt-2">
+                    <button class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition" (click)="openReplyModal(complaint)">Reply</button>
+                    <button class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition" (click)="openStatusModal(complaint, 'Resolved')">Resolved</button>
+                    <button class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition" (click)="openStatusModal(complaint, 'InProgress')">In Progress</button>
+                    <button class="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition" (click)="openStatusModal(complaint, 'PendingReview')">On Review</button>
+                    <button class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition" (click)="openDeleteConfirmModal(complaint)">Delete</button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Activity Feed -->
-        <div class="w-full max-w-5xl mt-6">
-          <div class="bg-white/80 backdrop-blur rounded-xl border border-slate-100 shadow p-4 sm:p-6">              <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                  <span class="bg-blue-100 text-blue-600 rounded-full p-2 mr-2 flex items-center justify-center">
-                    <!-- Activity Icon: Pulse/Heartbeat -->
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="#2563eb" stroke-width="2.2">
-                      <polyline points="3 12 7 12 10 19 14 5 17 12 21 12" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </span>
-                  <h3 class="text-lg font-extrabold tracking-tight text-blue-700 ml-1">Real-time Activity Log</h3>
-                </div>
-                <div class="flex items-center gap-2">
-                  <button (click)="downloadLog()" class="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-semibold hover:bg-green-200 transition flex items-center gap-1" title="Download activity log">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Download log
-                  </button>
-                  <button (click)="showClearLogConfirmation()" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold hover:bg-red-200 transition flex items-center gap-1" title="Clear activity log">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Clear log
-                  </button>
-                </div>
-              </div>
-            
-            <div class="max-h-80 overflow-y-auto pr-1 custom-scrollbar">
-              <ul class="divide-y divide-slate-100 text-sm">
-                <li *ngFor="let activity of activityFeed" class="py-2 flex items-center group transition-colors hover:bg-blue-50 rounded-lg px-2">
-                  <span [class]="'mr-2 h-2 w-2 rounded-full flex-shrink-0 ' + (activity.severity === 'warning' ? 'bg-yellow-500' : activity.severity === 'error' ? 'bg-red-500' : 'bg-green-500')"></span>
-                  <span class="font-medium text-slate-700 group-hover:text-blue-700">{{ activity.message }}</span>
-                  <span *ngIf="activity.timestamp" class="ml-auto text-xs bg-blue-100 text-blue-600 rounded-full px-2 py-0.5 group-hover:bg-blue-200 group-hover:text-blue-800 transition-all">{{ activity.timestamp?.toDate() | date:'short' }}</span>
-                </li>
-                <li *ngIf="activityFeed.length === 0" class="py-4 text-center text-slate-500">
-                  No activity logs to display
-                </li>
-              </ul>
-            </div>
-            
-            <div class="flex justify-end mt-3">
-              <button (click)="viewAllActivities = !viewAllActivities" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold hover:bg-blue-200 transition">
-                {{ viewAllActivities ? 'View Less' : 'View All' }}
-              </button>
-            </div>
-          </div>
-        </div>
+        <!-- AI Powered Features Section -->
+        <app-ai-powered-features></app-ai-powered-features>
+
       </div>
       <!-- Footer -->
       <footer class="w-full bg-white/80 backdrop-blur text-slate-400 border-t border-slate-200 py-3 px-4 sm:px-6 text-center text-xs mt-8">
@@ -373,7 +257,7 @@ import { Announcement } from '../models/announcement.model';
     </div>
 
     <div *ngIf="showAddAdminModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-2xl w-[442px] md:w-[579px] max-w-full flex flex-col items-center" style="max-height:80vh; overflow-y:auto;">
+      <div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-lg flex flex-col items-center mx-4 sm:mx-8" style="max-height:80vh; overflow-y:auto;">
         <div class="flex flex-col md:flex-row items-center md:justify-center w-full mb-3">
           <span class="relative inline-block mb-1 md:mb-0 md:mr-3">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -409,7 +293,7 @@ import { Announcement } from '../models/announcement.model';
           <div class="mb-6">
             <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
             <select [(ngModel)]="newAdmin.department" name="adminDepartment" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-              <option *ngFor="let dept of departments" [value]="dept.name">{{ dept.name }}</option>
+              <option *ngFor="let dept of getUniqueDepartments()" [value]="dept.name">{{ dept.name }}</option>
             </select>
           </div>
           <div class="flex justify-center" style="gap:1.3cm;">
@@ -421,7 +305,7 @@ import { Announcement } from '../models/announcement.model';
     </div>
 
     <div *ngIf="showViewUsersModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-2xl w-[442px] md:w-[579px] max-w-full flex flex-col items-center" style="max-height:80vh; overflow-y:auto;">
+      <div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-lg flex flex-col items-center mx-4 sm:mx-8" style="max-height:80vh; overflow-y:auto;">
         <div class="flex flex-col md:flex-row items-center md:justify-center w-full mb-3">
           <span class="relative inline-block mb-1 md:mb-0 md:mr-3">
             <!-- Blue User/Group Icon -->
@@ -457,8 +341,15 @@ import { Announcement } from '../models/announcement.model';
                        user.role === 'generaluser' ? 'General User' : 
                        'Unknown' }}
                   </span>
+                  <span *ngIf="user.approved === false" class="ml-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-[10px] font-bold">Pending</span>
+                  <button *ngIf="user.approved === false && (user.role === 'departmentadmin' || user.role === 'overalladmin')"
+                          (click)="approveUser(user)"
+                          class="ml-2 px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 transition">Approve</button>
                 </div>
                 <div class="flex items-center justify-between">
+                  <button *ngIf="user.approved === false && (user.role === 'departmentadmin' || user.role === 'overalladmin')"
+                          (click)="approveUser(user)"
+                          class="px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 transition">Approve</button>
                   <button (click)="deleteUser(user.id)" class="ml-2 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300">
                     <svg xmlns='http://www.w3.org/2000/svg' class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'>
                       <path stroke-linecap='round' stroke-linejoin='round' d='M6 18L18 6M6 6l12 12'/>
@@ -480,8 +371,8 @@ import { Announcement } from '../models/announcement.model';
     </div>
 
     <div *ngIf="showAddDepartmentModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-2xl w-[442px] md:w-[420px] max-w-full flex flex-col items-center" style="max-height:80vh; overflow-y:auto;">
-        <div class="flex flex-col items-center w-full mb-3">
+      <div class="bg-white p-6 rounded-lg shadow-2xl w-[95vw] max-w-4xl flex flex-col items-center" style="max-height:90vh; overflow-y:auto;">
+        <div class="flex flex-col items-center w-full mb-4">
           <span class="inline-block mb-2">
             <!-- Department Icon -->
             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -491,22 +382,76 @@ import { Announcement } from '../models/announcement.model';
               <rect x="13" y="14" width="2" height="4" rx="1" fill="#2563eb"/>
             </svg>
           </span>
-          <h3 class="text-xs md:text-sm font-extrabold text-blue-700 tracking-wide text-center">Add Department</h3>
+          <h3 class="text-lg font-extrabold text-blue-700 tracking-wide text-center">Manage Departments</h3>
         </div>
+
+
+
+        <!-- Existing Departments Section -->
+        <div class="w-full mb-6">
+          <h4 class="text-sm font-semibold text-gray-700 mb-3 border-b pb-2">Existing Departments & Admins</h4>
+          <div class="bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+              <div class="font-bold text-gray-700 border-b pb-1">Department</div>
+              <div class="font-bold text-gray-700 border-b pb-1">Description</div>
+              <div class="font-bold text-gray-700 border-b pb-1">Admin(s)</div>
+              <div class="font-bold text-gray-700 border-b pb-1">Actions</div>
+              
+              <ng-container *ngFor="let dept of getUniqueDepartments()">
+                <div class="py-2 border-b border-gray-200">
+                  <div class="font-semibold text-blue-600">{{ dept.name }}</div>
+                  <div class="text-xs text-gray-500 mt-1" *ngIf="dept.banner">{{ dept.banner }}</div>
+                </div>
+                <div class="py-2 border-b border-gray-200">
+                  <div class="text-gray-600">{{ dept.description || 'No description' }}</div>
+                </div>
+                <div class="py-2 border-b border-gray-200">
+                  <div class="flex flex-wrap gap-1">
+                    <ng-container *ngFor="let admin of getDepartmentAdmins(dept.name)">
+                      <span class="inline-block bg-green-100 text-green-700 rounded px-2 py-1 text-xs">{{ admin.name }}</span>
+                    </ng-container>
+                    <span *ngIf="getDepartmentAdmins(dept.name).length === 0" class="text-slate-400 text-xs">None assigned</span>
+                  </div>
+                </div>
+                <div class="py-2 border-b border-gray-200">
+                  <button 
+                    (click)="deleteDepartment(dept.id)" 
+                    class="text-red-600 hover:text-red-800 transition-colors"
+                    title="Delete department">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add New Department Section -->
+        <div class="w-full">
+          <h4 class="text-sm font-semibold text-gray-700 mb-3 border-b pb-2">Add New Department</h4>
         <form (ngSubmit)="addDepartment()" autocomplete="off" class="w-full text-sm">
-          <div class="mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Department Name</label>
             <input [(ngModel)]="newDepartment.name" name="departmentName" placeholder="Department Name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Banner Text</label>
+                <input [(ngModel)]="newDepartment.banner" name="departmentBanner" placeholder="e.g., 🏗️ Building Our City's Future 🏗️" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
           </div>
           <div class="mb-6">
             <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea [(ngModel)]="newDepartment.description" name="departmentDescription" placeholder="Short description" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+              <textarea [(ngModel)]="newDepartment.description" name="departmentDescription" placeholder="Short description of the department's responsibilities" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
           </div>
-          <div class="flex justify-center gap-6">
-            <button type="button" (click)="showAddDepartmentModal = false" class="px-4 py-2 bg-gray-300 rounded-lg">Close</button>
-            <button type="submit" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">Create</button>
+            <div class="flex justify-center gap-4">
+              <button type="button" (click)="showAddDepartmentModal = false" class="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400 transition">Close</button>
+              <button type="submit" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">Create Department</button>
           </div>
         </form>
+        </div>
       </div>
     </div>
 
@@ -529,7 +474,7 @@ import { Announcement } from '../models/announcement.model';
             <div>Department</div>
             <div>Admin(s)</div>
           </div>
-          <ng-container *ngFor="let dept of departments">
+          <ng-container *ngFor="let dept of getUniqueDepartments()">
             <div class="grid grid-cols-2 items-center border-b py-2">
               <div>{{ dept.name }}</div>
               <div>
@@ -685,6 +630,204 @@ import { Announcement } from '../models/announcement.model';
         </div>
       </div>
     </div>
+
+    <!-- Delete User Confirmation Modal -->
+    <div *ngIf="showDeleteUserModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md mx-4 sm:mx-8" >
+        <ng-container *ngIf="!deletingUser && !deleteUserSuccess">
+          <div class="flex items-center mb-4">
+            <div class="flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-lg font-bold text-red-700">Delete User</h3>
+            </div>
+          </div>
+          <div class="mb-6">
+            <p class="text-sm text-gray-700 mb-3">
+              Are you sure you want to delete the user <strong>"{{ userToDelete?.name }} {{ userToDelete?.surname }}"</strong>?
+            </p>
+            <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p class="text-sm font-semibold text-red-600 mb-1">⚠️ Warning:</p>
+              <ul class="text-xs text-red-600 space-y-1">
+                <li>• This action cannot be undone</li>
+                <li>• User will be marked as deleted and removed from the system</li>
+                <li>• User will no longer be able to access the application</li>
+                <li>• All user data will be preserved for audit purposes</li>
+              </ul>
+            </div>
+          </div>
+          <div class="flex justify-end gap-3">
+            <button (click)="cancelDeleteUser()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition">
+              Cancel
+            </button>
+            <button (click)="confirmDeleteUser()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+              Delete User
+            </button>
+          </div>
+        </ng-container>
+        <ng-container *ngIf="deletingUser">
+          <div class="flex flex-col items-center justify-center py-8">
+            <svg class="animate-spin h-12 w-12 text-blue-500 mb-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <div class="text-blue-700 font-semibold text-lg">Deleting user...</div>
+          </div>
+        </ng-container>
+        <ng-container *ngIf="deleteUserSuccess">
+          <div class="flex flex-col items-center justify-center py-8">
+            <div class="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div class="text-green-700 font-semibold text-lg">User deleted successfully!</div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- Delete Department Confirmation Modal -->
+    <div *ngIf="showDeleteDepartmentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white p-6 rounded-lg shadow-xl w-[400px] max-w-full">
+        <div class="flex items-center mb-4">
+          <div class="flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-lg font-bold text-red-700">Delete Department</h3>
+          </div>
+        </div>
+        
+        <div class="mb-6">
+          <p class="text-sm text-gray-700 mb-3">
+            Are you sure you want to delete the department <strong>"{{ departmentToDelete?.name }}"</strong>?
+          </p>
+          <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+            <p class="text-sm font-semibold text-red-600 mb-1">⚠️ Warning:</p>
+            <ul class="text-xs text-red-600 space-y-1">
+              <li>• This action cannot be undone</li>
+              <li>• All department data will be permanently removed</li>
+              <li>• Any complaints assigned to this department will need to be reassigned</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="flex justify-end gap-3">
+          <button (click)="cancelDeleteDepartment()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition">
+            Cancel
+          </button>
+          <button (click)="confirmDeleteDepartment()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+            Delete Department
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Settings Modal -->
+    <div *ngIf="showProfileModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+      <div class="bg-white p-6 rounded-lg shadow-2xl w-[442px] md:w-[500px] max-w-2xl flex flex-col items-center mx-8 sm:mx-16 my-8" style="max-height:80vh; overflow-y:auto;">
+        <h3 class="text-lg font-bold text-blue-700 mb-4">Profile Settings</h3>
+        <form (ngSubmit)="saveProfile()" autocomplete="off" class="w-full text-sm">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <input [(ngModel)]="profileForm.name" name="profileName" placeholder="Name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Surname</label>
+              <input [(ngModel)]="profileForm.surname" name="profileSurname" placeholder="Surname" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input [(ngModel)]="profileForm.email" name="profileEmail" placeholder="Email" type="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <input [(ngModel)]="profileForm.password" name="profilePassword" placeholder="Password" type="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+          <div class="mb-6" *ngIf="!adminRole.toLowerCase().includes('overall')">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+            <select [(ngModel)]="profileForm.department" name="profileDepartment" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option *ngFor="let dept of getUniqueDepartments()" [value]="dept.name">{{ dept.name }}</option>
+            </select>
+          </div>
+          <div class="flex justify-center gap-6">
+            <button type="button" (click)="closeProfileModal()" class="px-4 py-2 bg-gray-300 rounded-lg">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- About Modal -->
+    <div *ngIf="showAboutModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+      <div class="bg-white rounded-xl shadow-2xl w-[83vw] max-w-md p-0 mx-auto">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-xl flex items-center justify-between">
+          <h2 class="text-lg font-bold">About</h2>
+          <button (click)="showAboutModal = false" class="text-white hover:text-gray-200 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="p-4 space-y-3">
+          <!-- Profile -->
+          <div class="flex flex-col items-center mb-2">
+            <img src="assets/dev.jpg" alt="Developer" class="w-20 h-20 rounded-full object-cover mb-2 shadow" />
+            <div class="text-base font-bold text-gray-800">Simbarashe Matogo</div>
+            <div class="text-xs text-blue-600 font-semibold">Full Stack Developer</div>
+            <div class="text-xs text-gray-500">Final Year, Telone Centre for Learning</div>
+          </div>
+          <!-- About -->
+          <div>
+            <div class="text-xs text-gray-700 text-center">
+              Passionate about tech, I build modern web apps and love solving real-world problems. Open to work and collaborations!
+            </div>
+          </div>
+          <!-- About This Project -->
+          <div>
+            <div class="text-xs font-semibold text-gray-800 mb-1 flex items-center"><svg class="w-4 h-4 text-blue-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>About This Project</div>
+            <div class="text-xs text-gray-700">
+              Smart City Management System is a modern web platform for city administration, complaint management, and real-time service monitoring. Built with Angular and Firebase, it empowers city officials and citizens with efficient, transparent, and AI-powered tools for a smarter city.
+            </div>
+          </div>
+          <!-- Skills -->
+          <div>
+            <div class="text-xs font-semibold text-gray-800 mb-1 flex items-center"><svg class="w-4 h-4 text-blue-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>Skills</div>
+            <div class="flex flex-wrap gap-1">
+              <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">Angular</span>
+              <span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">TypeScript</span>
+              <span class="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded text-xs">JavaScript</span>
+              <span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs">Firebase</span>
+              <span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs">Node.js</span>
+              <span class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded text-xs">React</span>
+              <span class="bg-pink-100 text-pink-800 px-2 py-0.5 rounded text-xs">Python</span>
+            </div>
+          </div>
+          <!-- Contact -->
+          <div>
+            <div class="text-xs font-semibold text-gray-800 mb-1 flex items-center"><svg class="w-4 h-4 text-blue-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 012 2z"></path></svg>Contact</div>
+            <div class="text-xs text-gray-700">Email: simbarashe.matogo[at]gmail.com</div>
+            <div class="text-xs text-gray-700">Phone: +263 77 123 4567</div>
+            <div class="text-xs text-gray-700">LinkedIn: linkedin.com/in/simbarashe-matogo</div>
+          </div>
+          <!-- Call to Action -->
+          <div class="text-center mt-2">
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-2 text-xs mb-2">Let's work together!</div>
+            <button (click)="showAboutModal = false" class="bg-gray-600 text-white px-4 py-1 rounded text-xs hover:bg-gray-700 transition">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <app-ai-chat #aiChat></app-ai-chat>
   `,
   styles: [`
     .custom-scrollbar::-webkit-scrollbar {
@@ -746,6 +889,7 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
     'Most common issue: Water outages.',
     'Department Admin John resolved 15 complaints this week.'
   ];
+
   complaints: Complaint[] = [];
   private complaintsSubscription?: Subscription;
   showReplyModal = false;
@@ -774,7 +918,7 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
   private activityUnsub?: () => void;
   viewAllActivities: boolean = false;
   viewAllComplaints: boolean = false;
-  newDepartment = { name: '', description: '' };
+  newDepartment = { name: '', description: '', banner: '' };
   showViewDepartmentsModal = false;
   adminName: string = '';
   adminRole: string = 'Overall Admin';
@@ -782,6 +926,19 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
   showClearLogModal: boolean = false;
   clearingLog: boolean = false;
   clearLogSuccess: boolean = false;
+  showProfileModal: boolean = false;
+  profileForm = { name: '', surname: '', email: '', password: '', department: '' };
+  showDeleteDepartmentModal: boolean = false;
+  departmentToDelete: any = null;
+  showDeleteUserModal: boolean = false;
+  userToDelete: any = null;
+  defaultDepartmentsInitialized: boolean = false;
+  showAboutModal: boolean = false;
+  loading: boolean = true;
+  @ViewChild(AiChatComponent) aiChat!: AiChatComponent;
+  // Add state variables to the class:
+  deletingUser: boolean = false;
+  deleteUserSuccess: boolean = false;
   constructor(
     @Inject(NotificationService) private notificationService: NotificationService,
     private authService: AuthService,
@@ -790,6 +947,7 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
     @Inject(ThemeService) private themeService: ThemeService,
     @Inject(UserService) private userService: UserService,
     private complaintService: ComplaintService,
+    private departmentService: DepartmentService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -805,20 +963,37 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
       // Load theme preference
       this.loadThemePreference();
       
-      this.users = [
-        { id: 'u1', name: 'User A', email: 'a@email.com', role: 'generaluser' },
-        { id: 'u2', name: 'User B', email: 'b@email.com', role: 'departmentadmin' }
-      ];
-      this.admins = [
-        { id: 'a1', name: 'Admin John', department: 'Water and Sanitation' },
-        { id: 'a2', name: 'Admin Jane', department: 'Roads and Transport' },
-        { id: 'a3', name: 'Admin Mike', department: 'Waste Management' }
-      ];
-      this.departments = [
-        { id: 'd1', name: 'Water and Sanitation' },
-        { id: 'd2', name: 'Roads and Transport' },
-        { id: 'd3', name: 'Waste Management' }
-      ];
+      // Subscribe to real-time users data
+      this.userService.getUsers().subscribe((users: any[]) => {
+        this.users = users;
+        // Filter department admins with better data handling
+        this.admins = users
+          .filter(user => user.role === 'departmentadmin')
+          .map(user => ({
+            id: user.id,
+            name: `${user.name || ''} ${user.surname || ''}`.trim() || user.email || 'Unknown',
+            department: user.department || 'Unassigned',
+            email: user.email
+          }));
+        
+        this.cdr.detectChanges();
+      });
+      
+      // Subscribe to real-time departments data
+      this.departmentService.getDepartments().subscribe(async (departments: any[]) => {
+        this.departments = departments;
+        this.cdr.detectChanges();
+        
+        // Update existing department names to use correct naming convention
+        await this.updateDepartmentNames();
+        
+        // Initialize default departments if none exist (only once)
+        if (departments.length === 0 && !this.defaultDepartmentsInitialized) {
+          this.initializeDefaultDepartments();
+          this.defaultDepartmentsInitialized = true;
+        }
+      });
+      
       this.announcements = [
         { message: 'System maintenance scheduled for Friday', date: new Date().toISOString() }
       ];
@@ -908,8 +1083,15 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   deleteUser(userId: string) {
-    this.users = this.users.filter(u => u.id !== userId);
-    this.notificationService.showSuccess('User deleted!');
+    const user = this.users.find(u => u.id === userId);
+    if (user) {
+      if (user.role === 'overalladmin') {
+        this.notificationService.showError("Due to security reasons, Overall Admins can only be deleted directly from Firebase (the backend).", 4000);
+        return;
+      }
+      this.userToDelete = user;
+      this.showDeleteUserModal = true;
+    }
   }
 
   deleteAdmin(adminId: string) {
@@ -918,8 +1100,103 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   deleteDepartment(deptId: string) {
-    this.departments = this.departments.filter(d => d.id !== deptId);
-    this.notificationService.showSuccess('Department deleted!');
+    const department = this.departments.find(d => d.id === deptId);
+    if (department) {
+      this.departmentToDelete = department;
+      this.showDeleteDepartmentModal = true;
+    }
+  }
+
+  async confirmDeleteDepartment() {
+    if (this.departmentToDelete) {
+      try {
+        // Check if department has admins
+        const departmentAdmins = this.getDepartmentAdmins(this.departmentToDelete.name);
+        if (departmentAdmins.length > 0) {
+          this.notificationService.showError(`Cannot delete department "${this.departmentToDelete.name}" - it has ${departmentAdmins.length} admin(s) assigned. Please reassign or remove admins first.`);
+          this.showDeleteDepartmentModal = false;
+          this.departmentToDelete = null;
+          return;
+        }
+
+        // Delete department from database
+        await this.departmentService.deleteDepartment(this.departmentToDelete.id);
+        
+        // Log the department deletion
+        this.activityService.logActivity(
+          'delete_department',
+          `Department "${this.departmentToDelete.name}" deleted`,
+          this.departmentToDelete.id
+        );
+        
+        this.notificationService.showSuccess(`Department "${this.departmentToDelete.name}" deleted successfully!`);
+        this.showDeleteDepartmentModal = false;
+        this.departmentToDelete = null;
+      } catch (error) {
+        console.error('Error deleting department:', error);
+        this.notificationService.showError('Failed to delete department. Please try again.');
+      }
+    }
+  }
+
+  cancelDeleteDepartment() {
+    this.showDeleteDepartmentModal = false;
+    this.departmentToDelete = null;
+  }
+
+  async confirmDeleteUser() {
+    if (this.userToDelete) {
+      try {
+        this.deletingUser = true;
+        this.deleteUserSuccess = false;
+        // Check if user is trying to delete themselves
+        const currentUser = this.authService.getCurrentUserData();
+        if (currentUser && currentUser.uid === this.userToDelete.id) {
+          this.notificationService.showError('You cannot delete your own account.');
+          this.deletingUser = false;
+          this.showDeleteUserModal = false;
+          this.userToDelete = null;
+          return;
+        }
+
+        // Check if user is an overall admin (prevent deletion of overall admins)
+        if (this.userToDelete.role === 'overalladmin') {
+          this.notificationService.showError("Due to security reasons, Overall Admins can only be deleted directly from Firebase (the backend).", 4000);
+          this.deletingUser = false;
+          this.showDeleteUserModal = false;
+          this.userToDelete = null;
+          return;
+        }
+
+        // Mark user as deleted in Firestore (this will remove them from the UI)
+        await this.authService.markUserAsDeleted(this.userToDelete.id);
+        // Log the user deletion
+        this.activityService.logActivity(
+          'delete_user',
+          `User "${this.userToDelete.name} ${this.userToDelete.surname}" (${this.userToDelete.email}) deleted`,
+          this.userToDelete.id
+        );
+        this.notificationService.showSuccess(`User "${this.userToDelete.name} ${this.userToDelete.surname}" deleted successfully!`);
+        this.deletingUser = false;
+        this.deleteUserSuccess = true;
+        this.cdr.detectChanges();
+        this.showDeleteUserModal = false;
+        this.userToDelete = null;
+        this.deleteUserSuccess = false;
+        this.openViewUsersModal();
+        return;
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        this.notificationService.showError('Failed to delete user. Please try again.');
+        this.deletingUser = false;
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  cancelDeleteUser() {
+    this.showDeleteUserModal = false;
+    this.userToDelete = null;
   }
 
   askAI() {
@@ -929,32 +1206,35 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
 
   async addAdmin() {
     try {
+      // Validate department exists
+      const selectedDepartment = this.departments.find(dept => dept.name === this.newAdmin.department);
+      if (!selectedDepartment) {
+        this.notificationService.showError('Please select a valid department.');
+        return;
+      }
+
       const result = await this.authService.signUp(
         this.newAdmin.email,
         this.newAdmin.password,
-        'departmentadmin'
+        'departmentadmin',
+        this.newAdmin.name,
+        this.newAdmin.surname,
+        this.newAdmin.department
       );
-      
-      const adminId = Date.now().toString();
-      
-      this.admins.push({
-        id: adminId,
-        name: this.newAdmin.name,
-        department: this.newAdmin.department
-      });
       
       // Log the admin creation
       this.activityService.logActivity(
         'add_user',
-        `New department admin "${this.newAdmin.name}" created for ${this.newAdmin.department} department`,
-        adminId,
+        `New department admin "${this.newAdmin.name} ${this.newAdmin.surname}" created for ${this.newAdmin.department} department`,
+        '',
         'info'
       );
       
-      this.notificationService.showSuccess('Department admin created!');
+      this.notificationService.showSuccess('Department admin created successfully!');
       this.showAddAdminModal = false;
       this.newAdmin = { name: '', surname: '', email: '', password: '', department: '' };
     } catch (error) {
+      console.error('Error creating admin:', error);
       this.notificationService.showError('Failed to create admin: ' + (error as any).message);
     }
   }
@@ -978,13 +1258,44 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  addDepartment() {
+  /**
+   * Refresh admin data to ensure we have the latest information
+   */
+  refreshAdminData() {
+    // Force a refresh of the admin data by triggering change detection
+    this.cdr.detectChanges();
+    
+    // Log current state for debugging
+    console.log('Refreshing admin data...');
+    console.log('Current departments:', this.departments);
+    console.log('Current admins:', this.admins);
+    
+    // Check each department for admins
+    this.departments.forEach(dept => {
+      const deptAdmins = this.getDepartmentAdmins(dept.name);
+      console.log(`Department "${dept.name}" has ${deptAdmins.length} admins:`, deptAdmins);
+    });
+  }
+
+  async addDepartment() {
     if (this.newDepartment.name.trim()) {
-      const deptId = Date.now().toString();
-      this.departments.push({
-        id: deptId,
+      try {
+        // Check if department name already exists
+        const existingDepartment = this.departments.find(dept => 
+          dept.name.toLowerCase() === this.newDepartment.name.toLowerCase()
+        );
+        
+        if (existingDepartment) {
+          this.notificationService.showError('A department with this name already exists.');
+          return;
+        }
+
+        // Add department to database
+        const deptId = await this.departmentService.addDepartment({
         name: this.newDepartment.name,
-        description: this.newDepartment.description
+          description: this.newDepartment.description,
+          banner: this.newDepartment.banner,
+          isActive: true
       });
       
       // Log the department creation
@@ -994,16 +1305,113 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
         deptId
       );
       
-      this.notificationService.showSuccess('Department created!');
+        this.notificationService.showSuccess('Department created successfully!');
       this.showAddDepartmentModal = false;
-      this.newDepartment = { name: '', description: '' };
+        this.newDepartment = { name: '', description: '', banner: '' };
+      } catch (error) {
+        console.error('Error creating department:', error);
+        this.notificationService.showError('Failed to create department. Please try again.');
+      }
     } else {
       this.notificationService.showError('Department name is required.');
     }
   }
 
   getDepartmentAdmins(deptName: string) {
-    return this.admins ? this.admins.filter(a => a.department === deptName) : [];
+    if (!this.admins || this.admins.length === 0) {
+      return [];
+    }
+    
+    // Case-insensitive comparison for department names
+    const matchingAdmins = this.admins.filter(a => 
+      a.department && a.department.toLowerCase() === deptName.toLowerCase()
+    );
+    
+    return matchingAdmins;
+  }
+
+  /**
+   * Get all admins for all departments (for debugging)
+   */
+  getAllAdmins() {
+    return this.admins || [];
+  }
+
+  /**
+   * Get unique departments (filter out duplicates by name)
+   */
+  getUniqueDepartments() {
+    if (!this.departments || this.departments.length === 0) {
+      return [];
+    }
+    
+    // Filter out duplicates by department name (case-insensitive)
+    const uniqueDepartments = this.departments.filter((dept, index, self) => 
+      index === self.findIndex(d => 
+        d.name.toLowerCase() === dept.name.toLowerCase()
+      )
+    );
+    
+    return uniqueDepartments;
+  }
+
+  /**
+   * Initialize default departments in the database
+   */
+  private async initializeDefaultDepartments() {
+    try {
+      const defaultDepartments = [
+        {
+          name: 'Water Department',
+          description: 'Manages water supply and sanitation services',
+          banner: '🚰 Ensuring Clean Water & Sanitation for All Citizens 🚰',
+          isActive: true
+        },
+        {
+          name: 'Roads Department',
+          description: 'Maintains roads and transportation infrastructure',
+          banner: '🛣️ Building & Maintaining Safe Roads for Our City 🛣️',
+          isActive: true
+        },
+        {
+          name: 'Waste Management Department',
+          description: 'Handles waste collection and disposal services',
+          banner: '♻️ Keeping Our City Clean & Environmentally Friendly ♻️',
+          isActive: true
+        }
+      ];
+
+      for (const dept of defaultDepartments) {
+        await this.departmentService.addDepartment(dept);
+      }
+
+      console.log('Default departments initialized successfully');
+    } catch (error) {
+      console.error('Error initializing default departments:', error);
+    }
+  }
+
+  /**
+   * Update existing department names to use correct naming convention
+   */
+  private async updateDepartmentNames() {
+    try {
+      const departmentUpdates = [
+        { oldName: 'Water and Sanitation', newName: 'Water Department' },
+        { oldName: 'Roads and Transport', newName: 'Roads Department' },
+        { oldName: 'Waste Management', newName: 'Waste Management Department' }
+      ];
+
+      for (const update of departmentUpdates) {
+        const existingDept = this.departments.find(d => d.name === update.oldName);
+        if (existingDept) {
+          console.log(`Updating department name from "${update.oldName}" to "${update.newName}"`);
+          await this.departmentService.updateDepartment(existingDept.id, { name: update.newName });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating department names:', error);
+    }
   }
 
   logout() {
@@ -1197,21 +1605,12 @@ ${'='.repeat(50)}
         this.clearingLog = false;
         this.clearLogSuccess = true;
         this.cdr.detectChanges();
-        console.log('confirmClearLog: Success state set');
-        
-        // Show success for 2 seconds, then close
-        setTimeout(() => {
-          console.log('confirmClearLog: 2-second success delay completed');
-          
-          // Reset all states and close modal
-          this.clearLogSuccess = false;
-          this.showClearLogModal = false;
-          this.cdr.detectChanges();
-          console.log('confirmClearLog: Modal closed');
-          
-          // Show success notification
-          this.notificationService.showSuccess('✅ Activity log cleared successfully!', 3000);
-        }, 2000); // 2 seconds for success state
+        // Immediately close modal and reset state
+        this.clearLogSuccess = false;
+        this.showClearLogModal = false;
+        this.cdr.detectChanges();
+        // Show success notification
+        this.notificationService.showSuccess('✅ Activity log cleared successfully!', 3000);
       })
       .catch((error) => {
         console.error('Error clearing logs:', error);
@@ -1379,5 +1778,150 @@ ${'='.repeat(50)}
   toggleDarkMode() {
     this.isDarkMode = !this.isDarkMode;
     localStorage.setItem('darkMode', this.isDarkMode.toString());
+  }
+
+  openProfileModal() {
+    const userData = this.authService.getCurrentUserData();
+    this.profileForm = {
+      name: userData?.name || this.adminName.split(' ')[0] || '',
+      surname: userData?.surname || this.adminName.split(' ')[1] || '',
+      email: userData?.email || '',
+      password: '',
+      department: userData?.department || (this.adminRole.includes('Admin') ? (this.departments[0]?.name || '') : '')
+    };
+    this.showProfileModal = true;
+  }
+
+  closeProfileModal() {
+    this.showProfileModal = false;
+  }
+
+  async saveProfile() {
+    try {
+      const currentUser = this.authService.getCurrentUserData();
+      if (!currentUser) {
+        this.notificationService.showError('No user data found. Please log in again.');
+        return;
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        name: this.profileForm.name,
+        surname: this.profileForm.surname,
+        email: this.profileForm.email
+      };
+
+      // Add department if user is not overall admin
+      if (!this.adminRole.toLowerCase().includes('overall')) {
+        updateData.department = this.profileForm.department;
+      }
+
+      // Update user data in Firestore
+      await this.userService.updateUser(currentUser.uid, updateData);
+
+      // Update password if provided
+      if (this.profileForm.password && this.profileForm.password.trim()) {
+        try {
+          // Import updatePassword from Firebase Auth
+          const { updatePassword } = await import('firebase/auth');
+          const auth = this.authService.getAuth();
+          const user = auth.currentUser;
+          
+          if (user) {
+            await updatePassword(user, this.profileForm.password);
+            console.log('Password updated successfully');
+          }
+        } catch (passwordError) {
+          console.error('Error updating password:', passwordError);
+          this.notificationService.showError('Profile updated but password change failed. Please try again.');
+          this.showProfileModal = false;
+          return;
+        }
+      }
+
+      // Update local admin name and role display
+      this.adminName = `${this.profileForm.name} ${this.profileForm.surname}`.trim();
+      if (!this.adminRole.toLowerCase().includes('overall') && this.profileForm.department) {
+        this.adminRole = `${this.profileForm.department} Admin`;
+      }
+
+      // Log the profile update
+      this.activityService.logActivity(
+        'update_profile',
+        `Profile updated for user "${this.profileForm.name} ${this.profileForm.surname}"`,
+        currentUser.uid,
+        'info'
+      );
+
+      this.notificationService.showSuccess('Profile updated successfully!');
+      this.showProfileModal = false;
+      
+      // Clear password field
+      this.profileForm.password = '';
+      
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      this.notificationService.showError('Failed to update profile. Please try again.');
+    }
+  }
+
+  /**
+   * Get priority color class based on priority
+   */
+  getPriorityClass(priority: Priority): string {
+    switch (priority) {
+      case 'Low':
+        return 'text-green-600 bg-green-100';
+      case 'Medium':
+        return 'text-yellow-600 bg-yellow-100';
+      case 'High':
+        return 'text-orange-600 bg-orange-100';
+      case 'Critical':
+        return 'text-red-600 bg-red-100';
+      default:
+        return 'text-slate-600 bg-slate-100';
+    }
+  }
+
+  getComplaintStatus(complaint: Complaint): string {
+    if (!complaint.status) return 'New';
+    
+    switch (complaint.status) {
+      case 'New':
+        return 'New';
+      case 'Assigned':
+        return 'Assigned';
+      case 'InProgress':
+        return 'In Progress';
+      case 'PendingReview':
+        return 'Pending';
+      case 'Resolved':
+        return 'Resolved';
+      case 'Closed':
+        return 'Closed';
+      case 'Reopened':
+        return 'Reopened';
+      default:
+        return 'New';
+    }
+  }
+
+  openAiChat() {
+    if (this.aiChat) {
+      this.aiChat.openChat();
+    } else {
+      console.error('AI Chat component not found');
+    }
+  }
+
+  async approveUser(user: any) {
+    try {
+      await this.userService.updateUser(user.id, { approved: true });
+      user.approved = true;
+      this.notificationService.show('User approved successfully.', 'success');
+      this.cdr.detectChanges();
+    } catch (error) {
+      this.notificationService.show('Failed to approve user.', 'error');
+    }
   }
 }

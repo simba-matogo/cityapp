@@ -1,8 +1,10 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../services/auth.service';
+import { NotificationService } from '../services/notification.service';
 import { FormsModule } from '@angular/forms';
 import { FirebaseError } from 'firebase/app';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-landing-page',
@@ -63,7 +65,7 @@ import { FirebaseError } from 'firebase/app';
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
               </div>
-              <h4 clsass="text-lg font-bold text-white mb-2 group-hover:text-teal-300 transition-colors">Smart Routing</h4>
+              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-teal-300 transition-colors">Smart Routing</h4>
               <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Classify and prioritizes issues to ensure rapid response and resolution.</p>
             </div>
             
@@ -177,49 +179,82 @@ import { FirebaseError } from 'firebase/app';
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div class="flex justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-            </svg>
+          
+          <!-- Loading State -->
+          <div *ngIf="isSigningUp" class="flex flex-col items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-green-500 mb-4"></div>
+            <p class="text-lg font-semibold text-gray-700">Creating your account...</p>
+            <p class="text-sm text-gray-500 mt-2">Please wait while we set up your profile</p>
           </div>
-          <h3 class="text-2xl font-bold mb-4 text-gray-800 text-center">Sign Up</h3>
-          <form (ngSubmit)="signUp()">
-            <div class="mb-2">
-              <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-              <input type="text" id="username" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+          
+          <!-- Sign Up Form -->
+          <div *ngIf="!isSigningUp">
+            <div class="flex justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              </svg>
             </div>
-            <div class="mb-2">
-              <label for="surname" class="block text-sm font-medium text-gray-700">Surname</label>
-              <input type="text" id="surname" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+            <h3 class="text-2xl font-bold mb-4 text-gray-800 text-center">Sign Up</h3>
+            
+            <!-- Error Message -->
+            <div *ngIf="signUpErrorMessage" class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {{ signUpErrorMessage }}
             </div>
-            <div class="mb-2">
-              <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-              <input type="email" id="email" [(ngModel)]="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
+            
+            <form (ngSubmit)="signUp()">
+              <div class="mb-2">
+                <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                <input type="text" id="username" [(ngModel)]="username" name="username" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+              </div>
+              <div class="mb-2">
+                <label for="surname" class="block text-sm font-medium text-gray-700">Surname</label>
+                <input type="text" id="surname" [(ngModel)]="surname" name="surname" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+              </div>
+              <div class="mb-2">
+                <label for="signup-email" class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" id="signup-email" [(ngModel)]="signupEmail" name="signupEmail" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
+              </div>
+              <div class="mb-2">
+                <label for="signup-password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" id="signup-password" [(ngModel)]="signupPassword" name="signupPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
+              </div>
+              <div class="mb-2">
+                <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
+                <select id="role" [(ngModel)]="role" name="role" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="generaluser">General User</option>
+                  <option value="departmentadmin">Department Admin</option>
+                  <option value="overalladmin">Overall Admin</option>
+                </select>
+              </div>
+              <div class="mb-2" *ngIf="role === 'departmentadmin'">
+                <label for="department" class="block text-sm font-medium text-gray-700">Department</label>
+                <select id="department" [(ngModel)]="department" name="department" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="Water and Sanitation">Water and Sanitation</option>
+                  <option value="Roads and Transport">Roads and Transport</option>
+                  <option value="Waste Management">Waste Management</option>
+                </select>
+              </div>
+              <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">Sign Up</button>
+            </form>
+            <div class="mt-2 text-center">
+              <a href="#" (click)="openLoginModal()" class="text-green-600 hover:underline">Back to Login</a>
             </div>
-            <div class="mb-2">
-              <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-              <input type="password" id="password" [(ngModel)]="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
-            </div>
-            <div class="mb-2">
-              <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
-              <select id="role" [(ngModel)]="role" name="role" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option value="generaluser">General User</option>
-                <option value="departmentadmin">Department Admin</option>
-                <option value="overalladmin">Overall Admin</option>
-              </select>
-            </div>
-            <div class="mb-2" *ngIf="role === 'departmentadmin'">
-              <label for="department" class="block text-sm font-medium text-gray-700">Department</label>
-              <select id="department" [(ngModel)]="department" name="department" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="Water and Sanitation">Water and Sanitation</option>
-                <option value="Roads and Transport">Roads and Transport</option>
-                <option value="Waste Management">Waste Management</option>
-              </select>
-            </div>
-            <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">Sign Up</button>
-          </form>
-          <div class="mt-2 text-center">
-            <a href="#" (click)="openLoginModal()" class="text-green-600 hover:underline">Back to Login</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Signup Confirmation Modal -->
+      <div *ngIf="showAdminSignupModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-80 max-w-[90vw] flex flex-col items-center p-6">
+          <img src="/city.png" alt="Admin Signup" class="w-24 h-24 rounded-full object-cover mb-4 animate-bounce" />
+          <h3 class="text-lg font-bold text-blue-700 mb-2 text-center">You are signing up for an admin role</h3>
+          <p class="text-sm text-gray-700 text-center mb-2">Your details have been successfully registered.</p>
+          <p class="text-xs text-gray-500 text-center mb-4">You should now wait for approval and verification.<br>It will take up to <span class="font-bold text-blue-600">2 hours</span>.</p>
+          <div class="flex justify-center">
+            <svg class="animate-spin h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
           </div>
         </div>
       </div>
@@ -230,23 +265,49 @@ import { FirebaseError } from 'firebase/app';
 export class LandingPageComponent {
   showLoginModal = false;
   showSignUpModal = false;
+  isSigningUp = false;
+  showAdminSignupModal = false;
 
+  // Login form fields
   email = '';
   password = '';
+  
+  // Sign up form fields
+  username = '';
+  surname = '';
+  signupEmail = '';
+  signupPassword = '';
   role = 'generaluser';
   department = '';
-  signUpErrorMessage = ''; // Add this property to store error messages
+  signUpErrorMessage = '';
 
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private notificationService: NotificationService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   openLoginModal() {
     this.showLoginModal = true;
     this.showSignUpModal = false;
+    this.clearSignUpForm();
   }
 
   openSignUpModal() {
     this.showLoginModal = false;
     this.showSignUpModal = true;
+    this.clearSignUpForm();
+  }
+
+  clearSignUpForm() {
+    this.username = '';
+    this.surname = '';
+    this.signupEmail = '';
+    this.signupPassword = '';
+    this.role = 'generaluser';
+    this.department = '';
+    this.signUpErrorMessage = '';
+    this.isSigningUp = false;
   }
 
   async login() {
@@ -255,17 +316,70 @@ export class LandingPageComponent {
       this.showLoginModal = false;
     } catch (error) {
       console.error('Login failed:', error);
+      this.notificationService.showError('Login failed. Please check your credentials.');
     }
   }
 
   async signUp() {
+    if (!this.signupEmail || !this.signupPassword) {
+      this.signUpErrorMessage = 'Please fill in all required fields.';
+      return;
+    }
+
+    this.signUpErrorMessage = '';
+    this.isSigningUp = true;
+
     try {
-      await this.authService.signUp(this.email, this.password, this.role, undefined, undefined, this.role === 'departmentadmin' ? this.department : '');
+      await this.authService.createUserAccount(
+        this.signupEmail, 
+        this.signupPassword, 
+        this.role, 
+        this.username, 
+        this.surname, 
+        this.role === 'departmentadmin' ? this.department : ''
+      );
+
+      if (this.role === 'departmentadmin' || this.role === 'overalladmin') {
+        this.isSigningUp = false;
+        this.showSignUpModal = false;
+        this.showAdminSignupModal = true;
+        setTimeout(() => {
+          this.showAdminSignupModal = false;
+          this.openLoginModal();
+          this.cdr.detectChanges();
+        }, 1000); // Show for 1 second
+        return;
+      }
+
+      // For general users, show success and open login modal (no auto-login)
+      this.notificationService.showSuccess(
+        'Account Created Successfully!',
+        'Please login with your new credentials.',
+        5000
+      );
       this.showSignUpModal = false;
+      this.openLoginModal();
+      this.email = this.signupEmail;
     } catch (error) {
       const firebaseError = error as FirebaseError;
-      console.error('Sign-up failed:', firebaseError);
-      this.signUpErrorMessage = firebaseError.message || 'An unexpected error occurred during sign-up.';
+      this.isSigningUp = false;
+      if (firebaseError.code === 'auth/email-already-in-use') {
+        this.signUpErrorMessage = 'This email address is already registered. Please use a different email or try logging in.';
+        this.notificationService.showError(this.signUpErrorMessage, 5000);
+        return;
+      } else if (firebaseError.code === 'auth/weak-password') {
+        this.signUpErrorMessage = 'Password is too weak. Please use at least 6 characters.';
+        this.notificationService.showError(this.signUpErrorMessage, 5000);
+        return;
+      } else if (firebaseError.code === 'auth/invalid-email') {
+        this.signUpErrorMessage = 'Please enter a valid email address.';
+        this.notificationService.showError(this.signUpErrorMessage, 5000);
+        return;
+      } else {
+        this.signUpErrorMessage = 'An error occurred during sign-up. Please try again.';
+        this.notificationService.showError(this.signUpErrorMessage, 5000);
+        return;
+      }
     }
   }
 }
