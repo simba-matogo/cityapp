@@ -141,7 +141,7 @@ import { NotificationContainerComponent } from './notification-container.compone
               </svg>
             <div class="flex flex-col items-start justify-center flex-1">
               <div class="font-semibold text-slate-700 text-sm">AI Assistant</div>
-              <div class="text-[11px] text-slate-500 mb-1">Ask questions about city data, complaints, or trends</div>
+              <div class="text-[11px] text-slate-500 mb-1">Your Smart City AI assistant</div>
               <button class="px-2 py-0.5 bg-purple-600 text-white rounded text-[11px] font-semibold hover:bg-purple-700 transition" (click)="openAiChat()">Ask AI</button>
             </div>
           </div>
@@ -167,8 +167,8 @@ import { NotificationContainerComponent } from './notification-container.compone
             <div class="flex flex-col items-start justify-center flex-1 w-full">
               <div class="font-semibold text-slate-700 text-sm">Manage Departments</div>
               <div class="flex gap-2 mt-2 w-full">
-                <button class="px-2 py-0.5 bg-blue-600 text-white rounded text-[11px] font-semibold hover:bg-blue-700 transition w-full md:w-auto" (click)="showAddDepartmentModal = true; refreshAdminData()">Add Department</button>
-                <button class="px-2 py-0.5 bg-green-600 text-white rounded text-[10px] font-semibold hover:bg-green-700 transition w-full md:w-auto" (click)="showAddAdminModal = true">Add Admin</button>
+                <button class="px-2 py-0.5 bg-blue-600 text-white rounded text-[11px] font-semibold hover:bg-blue-700 transition w-full md:w-auto" (click)="showAddDepartmentModal = true; refreshAdminData()">Department</button>
+                <button class="px-2 py-0.5 bg-green-600 text-white rounded text-[10px] font-semibold hover:bg-green-700 transition w-full md:w-auto" (click)="showAddAdminModal = true">Admin</button>
               </div>
             </div>
           </div>
@@ -781,7 +781,7 @@ import { NotificationContainerComponent } from './notification-container.compone
         <div class="p-4 space-y-3">
           <!-- Profile -->
           <div class="flex flex-col items-center mb-2">
-            <img src="assets/dev.jpg" alt="Developer" class="w-20 h-20 rounded-full object-cover mb-2 shadow" />
+            <img src="https://ui-avatars.com/api/?name=Simbarashe+Matogo&background=0D8ABC&color=fff&size=128" alt="Developer" class="w-20 h-20 rounded-full object-cover mb-2 shadow" />
             <div class="text-base font-bold text-gray-800">Simbarashe Matogo</div>
             <div class="text-xs text-blue-600 font-semibold">Full Stack Developer</div>
             <div class="text-xs text-gray-500">Final Year, Telone Centre for Learning</div>

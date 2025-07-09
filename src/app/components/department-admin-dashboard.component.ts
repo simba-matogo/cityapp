@@ -811,7 +811,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
         <div class="p-4 space-y-3">
           <!-- Profile -->
           <div class="flex flex-col items-center mb-2">
-            <img src="assets/dev.jpg" alt="Developer" class="w-20 h-20 rounded-full object-cover mb-2 shadow" />
+            <img src="https://ui-avatars.com/api/?name=Simbarashe+Matogo&background=0D8ABC&color=fff&size=128" alt="Developer" class="w-20 h-20 rounded-full object-cover mb-2 shadow" />
             <div class="text-base font-bold text-gray-800">Simbarashe Matogo</div>
             <div class="text-xs text-blue-600 font-semibold">Full Stack Developer</div>
             <div class="text-xs text-gray-500">Final Year, Telone Centre for Learning</div>

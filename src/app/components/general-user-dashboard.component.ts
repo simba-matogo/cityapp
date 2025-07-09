@@ -14,6 +14,11 @@ import { Router } from '@angular/router';
 import { UserService } from '../services/user.service';
 import { ThemeService } from '../services/theme.service';
 
+/**
+ * General User Dashboard Component
+ * Provides the main dashboard UI and logic for general (citizen) users.
+ * Handles complaint submission, statistics, announcements, and AI assistant integration.
+ */
 @Component({
   selector: 'app-general-user-dashboard',
   standalone: true,
@@ -825,7 +830,7 @@ import { ThemeService } from '../services/theme.service';
         <div class="p-4 space-y-3">
           <!-- Profile -->
           <div class="flex flex-col items-center mb-2">
-            <img src="assets/dev.jpg" alt="Developer" class="w-20 h-20 rounded-full object-cover mb-2 shadow" />
+            <img src="https://ui-avatars.com/api/?name=Simbarashe+Matogo&background=0D8ABC&color=fff&size=128" alt="Developer" class="w-20 h-20 rounded-full object-cover mb-2 shadow" />
             <div class="text-base font-bold text-gray-800">Simbarashe Matogo</div>
             <div class="text-xs text-blue-600 font-semibold">Full Stack Developer</div>
             <div class="text-xs text-gray-500">Final Year, Telone Centre for Learning</div>
@@ -948,38 +953,51 @@ import { ThemeService } from '../services/theme.service';
   `
 })
 export class GeneralUserDashboardComponent implements OnInit {
-  // User data
+  /** User's full name for display in the dashboard */
   userName: string = '';
-  email: string = '';
+  /** Whether dark mode is enabled */
   isDarkMode: boolean = false;
-  
-  // Complaint stats
+
+  // Complaint statistics
+  /** List of complaints submitted by the current user */
   complaints: Complaint[] = [];
+  /** Total number of complaints */
   totalComplaints: number = 0;
+  /** Number of resolved complaints */
   resolvedComplaints: number = 0;
+  /** Number of pending complaints */
   pendingComplaints: number = 0;
+  /** Number of overdue complaints */
   overdueComplaints: number = 0;
-  previousTotal: number = 0;
 
   // Performance metrics
+  /** Average response time for resolved complaints (ms) */
   averageResponseTime: number = 0;
+  /** Whether response time improved (for UI indicator) */
   isResponseTimeImproved: boolean = false;
+  /** Percentage change in response time */
   responseTimeChange: number = 0;
+  /** Percentage of complaints resolved quickly */
   satisfactionRate: number = 0;
+  /** Whether satisfaction improved (for UI indicator) */
   isSatisfactionImproved: boolean = false;
+  /** Percentage change in satisfaction */
   satisfactionChange: number = 0;
+  /** Calculated efficiency score */
   efficiencyScore: number = 0;
+  /** Whether efficiency improved (for UI indicator) */
   isEfficiencyImproved: boolean = false;
+  /** Percentage change in efficiency */
   efficiencyChange: number = 0;
 
   // View states
-
-  // Activity and notifications
+  /** Activity feed for the user (future: to be populated from backend) */
   activityFeed: any[] = [];
-  notifications: any[] = [];
+  /** List of city announcements for the user */
   announcements: Announcement[] = [];
 
-  // New complaint form
+  // New complaint form state
+  /** Model for new complaint form */
   newComplaint: {
     title: string;
     description: string;
@@ -995,21 +1013,32 @@ export class GeneralUserDashboardComponent implements OnInit {
     location: '',
     priority: 'Medium'
   };
+  /** Whether the complaint modal is open */
   showComplaintModal: boolean = false;
+  /** Whether a complaint is being submitted */
   submittingComplaint: boolean = false;
+  /** Form validation errors for the complaint form */
   formErrors: { [key: string]: boolean } = {};
+  /** Location address for the complaint */
   locationAddress: string = '';
+  /** Whether the About modal is open */
   showAboutModal: boolean = false;
+  /** Whether the delete complaint confirmation modal is open */
   showDeleteConfirmModal: boolean = false;
+  /** The complaint selected for deletion */
   complaintToDelete: Complaint | null = null;
+  /** Whether a complaint is being deleted */
   deletingComplaint: boolean = false;
+  /** Whether the reply modal is open */
   showReplyModal: boolean = false;
+  /** The complaint selected for viewing replies */
   selectedComplaint: Complaint | null = null;
+  /** Whether the delete reply confirmation modal is open */
   showDeleteReplyConfirmModal: boolean = false;
+  /** The reply selected for deletion (complaint and index) */
   replyToDelete: { complaint: Complaint; index: number } | null = null;
-  showAiChatModal: boolean = false;
 
-  // Stats
+  // Dashboard statistics object (for backward compatibility)
   stats = {
     totalComplaints: 0,
     pendingComplaints: 0,
@@ -1017,13 +1046,16 @@ export class GeneralUserDashboardComponent implements OnInit {
     inProgressComplaints: 0
   };
 
-  // Loading and error states
+  /** Whether complaints are loading */
   loading: boolean = true;
+  /** Error message for UI display */
   error: string | null = null;
-
-  // Additional properties
+  /** Total number of users in the system (for stats) */
   totalUsersCount: number = 0;
 
+  /**
+   * Constructor injects all required services for dashboard functionality.
+   */
   constructor(
     private firebaseService: FirebaseService,
     private authService: AuthService,
@@ -1036,47 +1068,59 @@ export class GeneralUserDashboardComponent implements OnInit {
     private chatService: ChatService
   ) {}
 
+  /** Reference to the AI Chat component for opening the chat modal */
   @ViewChild(AiChatComponent) aiChat!: AiChatComponent;
 
-  // AI Chat functionality
+  /**
+   * Opens the AI chat modal for user assistance.
+   */
   openAiChat() {
     if (this.aiChat) {
       this.aiChat.openChat();
     } else {
+      // Should never happen, but log for debugging
       console.error('AI Chat component not found');
     }
   }
 
+  /**
+   * Lifecycle hook: initializes user info, complaints, announcements, and theme.
+   * Also subscribes to total user count for dashboard stats.
+   */
   async ngOnInit() {
     await this.getCurrentUserInfo();
     await this.loadComplaints();
     await this.loadAnnouncements();
     this.updateComplaintStats();
     this.loadThemePreference();
-    this.activityFeed = [
-      { message: 'Complaint #C-7829 updated', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) },
-      { message: 'Complaint #C-7651 resolved', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-      { message: 'Submitted new complaint', timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) }
-    ];
+    // Activity feed can be populated from backend in the future
     await this.loadAnnouncements();
-    
-    // Subscribe to total user count
+    // Subscribe to total user count for stats
     this.userService.getTotalUserCount().subscribe(count => {
       this.totalUsersCount = count;
       this.cdr.detectChanges();
     });
   }
 
+  /**
+   * Loads the user's theme preference from localStorage.
+   */
   loadThemePreference() {
     const savedTheme = localStorage.getItem('darkMode');
     this.isDarkMode = savedTheme === 'true';
   }
 
+  /**
+   * Toggles dark mode and saves preference to localStorage.
+   */
   toggleDarkMode() {
     this.isDarkMode = !this.isDarkMode;
     localStorage.setItem('darkMode', this.isDarkMode.toString());
   }
 
+  /**
+   * Loads the current user's info (name, etc.) for display.
+   */
   async getCurrentUserInfo() {
     const currentUser = this.authService.auth.currentUser;
     if (currentUser && currentUser.uid) {
@@ -1084,13 +1128,17 @@ export class GeneralUserDashboardComponent implements OnInit {
       if (userDoc && userDoc.name) {
         this.userName = userDoc.name + (userDoc.surname ? ' ' + userDoc.surname : '');
       } else if (currentUser.email) {
-        // fallback to email prefix
+        // Fallback: use email prefix as name
         const emailName = currentUser.email.split('@')[0];
         this.userName = emailName.replace(/[._]/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
       }
     }
   }
 
+  /**
+   * Loads all complaints submitted by the current user from Firestore.
+   * Updates complaint statistics and triggers UI refresh.
+   */
   async loadComplaints() {
     try {
       const currentUser = this.authService.auth.currentUser;
@@ -1101,9 +1149,8 @@ export class GeneralUserDashboardComponent implements OnInit {
         return;
       }
       const complaints = await this.firebaseService.getCollection('complaints');
-      console.log('Total complaints fetched:', complaints.length);
       const currentUserEmail = currentUser.email?.toLowerCase() || '';
-      
+      // Filter complaints to only those submitted by the current user
       this.complaints = complaints.filter((complaint: any) => {
         const submitterEmail = complaint.submittedBy?.email?.toLowerCase() || '';
         const isUsersComplaint = submitterEmail === currentUserEmail;
@@ -1129,45 +1176,35 @@ export class GeneralUserDashboardComponent implements OnInit {
           tags: complaint.tags || [],
           votes: complaint.votes || 0
         } as Complaint));
-        
       // Sort complaints by creation date (newest first)
       this.complaints.sort((a, b) => {
         const dateA = new Date(a.dates.created).getTime();
         const dateB = new Date(b.dates.created).getTime();
         return dateB - dateA; // Descending order (newest first)
       });
-      
       this.loading = false;
       this.updateComplaintStats();
       this.cdr.detectChanges();
-      
-      // Log the real counts for debugging
-      console.log('Real complaint counts:', {
-        total: this.totalComplaints,
-        resolved: this.resolvedComplaints,
-        pending: this.pendingComplaints,
-        overdue: this.overdueComplaints
-      });
-      
       // Force change detection to ensure UI updates
       setTimeout(() => {
         this.cdr.detectChanges();
       }, 100);
     } catch (error) {
-      console.error('Error loading complaints:', error);
-      this.error = 'Failed to load complaints';
+      // Show user-friendly error message
+      this.error = 'Failed to load complaints. Please try again later.';
       this.loading = false;
       this.cdr.detectChanges();
     }
   }
 
-  // Load announcements for the user
+  /**
+   * Loads city announcements relevant to the user (role/department).
+   */
   async loadAnnouncements() {
     try {
       const userData = this.authService.getCurrentUserData();
       const userRole = userData?.role || 'generaluser';
       const userDepartment = userData?.department;
-      
       this.announcementService.getAnnouncementsForUser(userRole, userDepartment).subscribe(
         announcements => {
           this.announcements = announcements.slice(0, 5); // Show only latest 5
@@ -1175,18 +1212,21 @@ export class GeneralUserDashboardComponent implements OnInit {
         }
       );
     } catch (error) {
+      // Log error for debugging
       console.error('Error loading announcements:', error);
     }
   }
 
-  // Format date for announcements
+  /**
+   * Formats a date string for announcement display (e.g., '2h ago', '3d ago').
+   * @param dateString ISO date string
+   */
   formatAnnouncementDate(dateString: string): string {
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
     if (diffHours < 1) {
       return 'Just now';
     } else if (diffHours < 24) {
@@ -1198,7 +1238,10 @@ export class GeneralUserDashboardComponent implements OnInit {
     }
   }
 
-  // Get announcement priority color
+  /**
+   * Returns the appropriate CSS class for an announcement's priority.
+   * @param priority Announcement priority string
+   */
   getAnnouncementPriorityColor(priority: string): string {
     switch (priority) {
       case 'Critical':
@@ -1214,16 +1257,21 @@ export class GeneralUserDashboardComponent implements OnInit {
     }
   }
 
-  // View announcement details and increment view count
+  /**
+   * Handles viewing an announcement and increments its view count.
+   * @param announcement The announcement to view
+   */
   async viewAnnouncement(announcement: Announcement) {
     if (announcement.id) {
       await this.announcementService.incrementViewCount(announcement.id);
     }
-    // You can implement a modal or navigation to full announcement view here
-    console.log('Viewing announcement:', announcement.title);
+    // Optionally, open a modal or navigate to full announcement view
   }
 
-  // Update complaint statistics
+  /**
+   * Updates complaint statistics and performance metrics.
+   * Called after loading or modifying complaints.
+   */
   updateComplaintStats() {
     if (!this.complaints || this.complaints.length === 0) {
       // Reset all counts to 0
@@ -1231,7 +1279,6 @@ export class GeneralUserDashboardComponent implements OnInit {
       this.resolvedComplaints = 0;
       this.pendingComplaints = 0;
       this.overdueComplaints = 0;
-      
       this.stats = {
         totalComplaints: 0,
         pendingComplaints: 0,
@@ -1240,7 +1287,6 @@ export class GeneralUserDashboardComponent implements OnInit {
       };
       return;
     }
-
     // Calculate real counts from complaints data
     this.totalComplaints = this.complaints.length;
     this.resolvedComplaints = this.complaints.filter(c => c.status === 'Resolved').length;
@@ -1248,18 +1294,14 @@ export class GeneralUserDashboardComponent implements OnInit {
       c.status === 'PendingReview' || 
       c.status === 'New'
     ).length;
-    
-    // Calculate overdue complaints (complaints older than 7 days that are not resolved)
+    // Calculate overdue complaints (older than 7 days, not resolved)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
     this.overdueComplaints = this.complaints.filter(c => {
-      if (c.status === 'Resolved') return false; // Resolved complaints are not overdue
-      
+      if (c.status === 'Resolved') return false;
       const createdDate = new Date(c.dates.created);
       return createdDate < sevenDaysAgo;
     }).length;
-
     // Update stats object for backward compatibility
     this.stats = {
       totalComplaints: this.totalComplaints,
@@ -1267,14 +1309,16 @@ export class GeneralUserDashboardComponent implements OnInit {
       resolvedComplaints: this.resolvedComplaints,
       inProgressComplaints: this.complaints.filter(c => c.status === 'InProgress').length
     };
-
     // Calculate additional metrics
     this.calculateResponseTimeMetrics();
     this.calculateSatisfactionMetrics();
     this.calculateEfficiencyMetrics();
   }
 
-  // Calculate response time metrics
+  /**
+   * Calculates average response time for resolved complaints.
+   * Updates response time metrics for dashboard display.
+   */
   private calculateResponseTimeMetrics() {
     const resolvedComplaints = this.complaints.filter(c => c.status === 'Resolved');
     if (resolvedComplaints.length === 0) {
@@ -1283,7 +1327,6 @@ export class GeneralUserDashboardComponent implements OnInit {
       this.isResponseTimeImproved = false;
       return;
     }
-
     let totalResponseTime = 0;
     resolvedComplaints.forEach(complaint => {
       const createdDate = new Date(complaint.dates.created);
@@ -1291,14 +1334,16 @@ export class GeneralUserDashboardComponent implements OnInit {
       const responseTime = resolvedDate.getTime() - createdDate.getTime();
       totalResponseTime += responseTime;
     });
-
     this.averageResponseTime = totalResponseTime / resolvedComplaints.length;
     // For demo purposes, assume 10% improvement
     this.responseTimeChange = -10;
     this.isResponseTimeImproved = true;
   }
 
-  // Calculate satisfaction metrics
+  /**
+   * Calculates satisfaction metrics based on quick resolutions.
+   * Updates satisfaction rate and change for dashboard display.
+   */
   private calculateSatisfactionMetrics() {
     const resolvedComplaints = this.complaints.filter(c => c.status === 'Resolved');
     if (resolvedComplaints.length === 0) {
@@ -1307,21 +1352,22 @@ export class GeneralUserDashboardComponent implements OnInit {
       this.isSatisfactionImproved = false;
       return;
     }
-
-    // For demo purposes, calculate based on resolution time
+    // For demo: satisfaction = % resolved within 3 days
     const quickResolutions = resolvedComplaints.filter(complaint => {
       const createdDate = new Date(complaint.dates.created);
       const resolvedDate = new Date(complaint.dates.updated);
       const daysToResolve = (resolvedDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
-      return daysToResolve <= 3; // Resolved within 3 days
+      return daysToResolve <= 3;
     });
-
     this.satisfactionRate = (quickResolutions.length / resolvedComplaints.length) * 100;
     this.satisfactionChange = 5; // Assume 5% improvement
     this.isSatisfactionImproved = true;
   }
 
-  // Calculate efficiency metrics
+  /**
+   * Calculates efficiency metrics based on resolution rate and response time.
+   * Updates efficiency score and change for dashboard display.
+   */
   private calculateEfficiencyMetrics() {
     if (this.totalComplaints === 0) {
       this.efficiencyScore = 0;
@@ -1329,46 +1375,52 @@ export class GeneralUserDashboardComponent implements OnInit {
       this.isEfficiencyImproved = false;
       return;
     }
-
     // Calculate efficiency based on resolution rate and response time
     const resolutionRate = (this.resolvedComplaints / this.totalComplaints) * 100;
-    const responseTimeScore = Math.max(0, 100 - (this.averageResponseTime / (1000 * 60 * 60 * 24))); // Days to hours
-    
+    const responseTimeScore = Math.max(0, 100 - (this.averageResponseTime / (1000 * 60 * 60 * 24)));
     this.efficiencyScore = (resolutionRate + responseTimeScore) / 2;
     this.efficiencyChange = 8; // Assume 8% improvement
     this.isEfficiencyImproved = true;
   }
 
-  // Logout user
+  /**
+   * Logs out the current user and navigates to the landing page.
+   */
   async logout() {
     try {
       await this.authService.logout();
       this.router.navigate(['/']);
     } catch (error) {
+      // Log error for debugging
       console.error('Error logging out:', error);
     }
   }
 
-  // Open complaint modal
+  /** Opens the complaint modal for submitting a new complaint. */
   openComplaintModal() {
     this.showComplaintModal = true;
   }
 
-  // Close complaint modal
+  /** Closes the complaint modal. */
   closeComplaintModal() {
     this.showComplaintModal = false;
   }
 
-  // Refresh complaints
+  /**
+   * Refreshes the complaints list and updates statistics.
+   * Triggers UI change detection.
+   */
   async refreshComplaints() {
     this.loading = true;
     await this.loadComplaints();
-    // Ensure stats are updated after refresh
     this.updateComplaintStats();
     this.cdr.detectChanges();
   }
 
-  // Get complaint status with proper formatting
+  /**
+   * Returns the status of a complaint for display.
+   * @param complaint The complaint object
+   */
   getComplaintStatus(complaint: Complaint): string {
     if (!complaint || !complaint.status) {
       return 'Unknown';
@@ -1376,25 +1428,24 @@ export class GeneralUserDashboardComponent implements OnInit {
     return complaint.status;
   }
 
-  // Submit new complaint
+  /**
+   * Submits a new complaint to Firestore and refreshes the list.
+   * Handles form validation and error display.
+   */
   async submitComplaint() {
     if (!this.newComplaint.title || !this.newComplaint.description || !this.newComplaint.department) {
       this.error = 'Please fill in all required fields';
       return;
     }
-
     try {
       this.submittingComplaint = true;
       const currentUser = this.authService.auth.currentUser;
-      
       if (!currentUser) {
         this.error = 'User not authenticated';
         this.submittingComplaint = false;
         return;
       }
-
       const userData = this.authService.getCurrentUserData();
-      
       const complaint: Partial<Complaint> = {
         title: this.newComplaint.title,
         description: this.newComplaint.description,
@@ -1422,9 +1473,7 @@ export class GeneralUserDashboardComponent implements OnInit {
         isAnonymous: false,
         isPublic: true
       };
-
       const complaintId = await this.firebaseService.addDocument('complaints', complaint);
-      
       // Reset form
       this.newComplaint = {
         title: '',
@@ -1434,15 +1483,9 @@ export class GeneralUserDashboardComponent implements OnInit {
         location: '',
         priority: 'Medium'
       };
-      
       this.closeComplaintModal();
       await this.refreshComplaints();
-      
-      // Show success message
-      console.log('Complaint submitted successfully with ID:', complaintId);
-      
     } catch (error) {
-      console.error('Error submitting complaint:', error);
       this.error = 'Failed to submit complaint. Please try again.';
     } finally {
       this.submittingComplaint = false;
@@ -1468,7 +1511,7 @@ export class GeneralUserDashboardComponent implements OnInit {
 
   async confirmDeleteComplaint(): Promise<void> {
     if (!this.complaintToDelete || !this.complaintToDelete.id) {
-      console.error('No complaint selected for deletion');
+      this.error = 'No complaint selected for deletion';
       return;
     }
 
@@ -1487,12 +1530,7 @@ export class GeneralUserDashboardComponent implements OnInit {
       // Close the modal
       this.closeDeleteConfirmModal();
       
-      // Show success message (you can implement a notification service here)
-      console.log('Complaint deleted successfully');
-      
     } catch (error) {
-      console.error('Error deleting complaint:', error);
-      // Show error message (you can implement a notification service here)
       this.error = 'Failed to delete complaint. Please try again.';
     } finally {
       this.deletingComplaint = false;
@@ -1596,7 +1634,7 @@ export class GeneralUserDashboardComponent implements OnInit {
 
   async deleteReply(complaint: Complaint, replyIndex: number): Promise<void> {
     if (!complaint || !complaint.updates || replyIndex < 0 || replyIndex >= complaint.updates.length) {
-      console.error('Invalid reply or complaint');
+      this.error = 'Invalid reply or complaint';
       return;
     }
 
@@ -1617,9 +1655,8 @@ export class GeneralUserDashboardComponent implements OnInit {
         'dates.updated': new Date().toISOString()
       });
       
-      console.log('Reply deleted successfully');
     } catch (error) {
-      console.error('Error deleting reply:', error);
+      this.error = 'Error deleting reply. Please try again.';
     }
   }
 

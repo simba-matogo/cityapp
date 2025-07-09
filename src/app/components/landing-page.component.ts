@@ -246,7 +246,13 @@ import { ChangeDetectorRef } from '@angular/core';
       <!-- Admin Signup Confirmation Modal -->
       <div *ngIf="showAdminSignupModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
         <div class="bg-white rounded-xl shadow-2xl w-80 max-w-[90vw] flex flex-col items-center p-6">
-          <img src="/city.png" alt="Admin Signup" class="w-24 h-24 rounded-full object-cover mb-4 animate-bounce" />
+          <!-- Profile -->
+          <div class="flex flex-col items-center mb-2">
+            <img src="assets/simba.png" alt="Developer" class="w-20 h-20 rounded-full object-cover mb-2 shadow" />
+            <div class="text-base font-bold text-gray-800">Simbarashe Matogo</div>
+            <div class="text-xs text-blue-600 font-semibold">Full Stack Developer</div>
+            <div class="text-xs text-gray-500">Final Year, Telone Centre for Learning</div>
+          </div>
           <h3 class="text-lg font-bold text-blue-700 mb-2 text-center">You are signing up for an admin role</h3>
           <p class="text-sm text-gray-700 text-center mb-2">Your details have been successfully registered.</p>
           <p class="text-xs text-gray-500 text-center mb-4">You should now wait for approval and verification.<br>It will take up to <span class="font-bold text-blue-600">2 hours</span>.</p>
