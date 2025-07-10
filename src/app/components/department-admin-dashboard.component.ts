@@ -8,11 +8,12 @@ import { Complaint, Status, Priority, Department } from '../models/complaint.mod
 import { Announcement } from '../models/announcement.model';
 import { AnnouncementService } from '../services/announcement.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { AiChatComponent } from './ai-chat.component';
 
 @Component({
   selector: 'app-department-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AiChatComponent],
   template: `
     <div class="min-h-screen" [class]="isDarkMode ? 'bg-gray-900' : 'bg-slate-50'">
       <!-- Modern Navbar -->
@@ -986,6 +987,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
         </div>
       </div>
     </div>
+    <app-ai-chat #aiChat></app-ai-chat>
   `,
   styles: []
 })

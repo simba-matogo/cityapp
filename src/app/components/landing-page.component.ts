@@ -11,109 +11,105 @@ import { ChangeDetectorRef } from '@angular/core';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="min-h-screen bg-gradient-to-r from-blue-600 to-green-500 flex flex-col items-center justify-center">      <nav class="w-full bg-white bg-opacity-70 backdrop-blur-md shadow-md py-4 px-6 flex justify-between items-center fixed top-0 z-50">
-        <div class="flex items-center">
-          <img src="/city.png" alt="City Logo" class="h-10 w-10 mr-4">
-          <h1 class="text-3xl font-bold text-gray-800">Harare City Council</h1>
+    <div class="min-h-screen bg-white flex flex-col items-center justify-center">      <nav class="sticky top-0 z-50 w-full backdrop-blur-lg border-b shadow-sm bg-white/80 border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between items-center h-16">
+            <div class="flex items-center gap-3">
+              <img src="/city.png" alt="City Logo" class="h-10 w-10 object-contain">
+              <div class="flex flex-col">
+                <span class="text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Harare City Portal</span>
+                <span class="text-xs text-slate-500">Smart City Portal</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-4">
+              <button (click)="openLoginModal()" class="px-2 py-1 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition">
+                Get Started
+              </button>
+            </div>
+          </div>
         </div>
-        <button (click)="openLoginModal()" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">
-          Get Started
-        </button>
       </nav>
 
-      <div class="text-center mt-36 pt-20">
-        <!-- Increased padding-top (pt-20) to add 2.5cm space between sections -->
-        <h2 class="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-red-500 to-purple-600 drop-shadow-lg mb-6">
+      <div class="text-center mt-36 pt-20 bg-green-100">
+        <h2 class="text-6xl font-extrabold text-blue-700 drop-shadow-lg mb-6">
           Your Voice Matters to Us
         </h2>
-        <p class="text-xl text-gray-100 max-w-3xl mx-auto leading-relaxed tracking-wide">
+        <p class="text-xl text-black max-w-3xl mx-auto leading-relaxed tracking-wide">
           Empowering Harare residents to make a difference. Submit complaints, track progress, and help us improve our city together.
         </p>
       </div>
       
-      <div class="mt-12 text-center relative overflow-hidden py-8">
-        <!-- Modern background with subtle animations -->
-        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 backdrop-blur-md"></div>
+      <div class="mt-12 text-center relative overflow-hidden py-8 bg-green-100">
+        <div class="absolute inset-0 bg-white/80"></div>
         <div class="absolute inset-0">
-          <div class="absolute top-10 left-1/4 w-32 h-32 bg-blue-300/20 rounded-full filter blur-xl animate-pulse"></div>
-          <div class="absolute bottom-10 right-1/4 w-24 h-24 bg-purple-300/20 rounded-full filter blur-xl animate-pulse" style="animation-delay: 1s"></div>
-          <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-teal-300/20 rounded-full filter blur-xl animate-pulse" style="animation-delay: 2s"></div>
+          <div class="absolute top-10 left-1/4 w-32 h-32 bg-gray-200/40 rounded-full filter blur-xl animate-pulse"></div>
+          <div class="absolute bottom-10 right-1/4 w-24 h-24 bg-gray-300/30 rounded-full filter blur-xl animate-pulse" style="animation-delay: 1s"></div>
+          <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-gray-100/30 rounded-full filter blur-xl animate-pulse" style="animation-delay: 2s"></div>
         </div>
-        
-        <!-- Content -->
         <div class="relative z-10 max-w-6xl mx-auto px-14">
-          <!-- Increased padding (px-14) to extend section width by 4cm, 2cm on each side -->
-          <h3 class="text-4xl font-extrabold text-white mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 drop-shadow-md">Next-Gen AI Features</h3>
-          <p class="text-white/80 max-w-2xl mx-auto mb-10">Powered by cutting-edge artificial intelligence to transform your city experience</p>
-          
+          <h3 class="text-4xl font-extrabold text-blue-700 mb-6 drop-shadow-md">AI Sunshine City</h3>
+          <p class="text-blue-700 max-w-2xl mx-auto mb-10">Powered by cutting-edge artificial intelligence to transform your city experience</p>
           <div class="grid grid-cols-1 md:grid-cols-6 gap-6">
-            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-blue-300/50 hover:shadow-blue-500/20 transition-all duration-300 flex flex-col items-center">
+            <div class="group bg-green-50/80 backdrop-blur-lg border border-green-200 rounded-lg shadow-lg p-4 hover:border-green-400 hover:shadow-green-300 transition-all duration-300 flex flex-col items-center">
               <div class="relative mb-4">
-                <div class="absolute -inset-1 bg-blue-600/30 rounded-full blur-md group-hover:bg-blue-500/40"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <div class="absolute -inset-1 bg-green-200/40 rounded-full blur-md group-hover:bg-green-300/50"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-700 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-blue-300 transition-colors">Smart Analytics</h4>
-              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Trend analysis to optimize city resources and services.</p>
+              <h4 class="text-lg font-bold text-black mb-2 group-hover:text-gray-800 transition-colors">Smart Analytics</h4>
+              <p class="text-black text-center group-hover:text-gray-800 transition-colors">Trend analysis to optimize city resources and services.</p>
             </div>
-            
-            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-teal-300/50 hover:shadow-teal-500/20 transition-all duration-300 flex flex-col items-center">
+            <div class="group bg-green-50/80 backdrop-blur-lg border border-green-200 rounded-lg shadow-lg p-4 hover:border-green-400 hover:shadow-green-300 transition-all duration-300 flex flex-col items-center">
               <div class="relative mb-4">
-                <div class="absolute -inset-1 bg-teal-600/30 rounded-full blur-md group-hover:bg-teal-500/40"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-teal-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                <div class="absolute -inset-1 bg-green-200/40 rounded-full blur-md group-hover:bg-green-300/50"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-700 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-teal-300 transition-colors">Smart Routing</h4>
-              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Classify and prioritizes issues to ensure rapid response and resolution.</p>
+              <h4 class="text-lg font-bold text-black mb-2 group-hover:text-gray-800 transition-colors">Smart Routing</h4>
+              <p class="text-black text-center group-hover:text-gray-800 transition-colors">Classify and prioritizes issues to ensure rapid response and resolution.</p>
             </div>
-            
-            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-purple-300/50 hover:shadow-purple-500/20 transition-all duration-300 flex flex-col items-center">
+            <div class="group bg-green-50/80 backdrop-blur-lg border border-green-200 rounded-lg shadow-lg p-4 hover:border-green-400 hover:shadow-green-300 transition-all duration-300 flex flex-col items-center">
               <div class="relative mb-4">
-                <div class="absolute -inset-1 bg-purple-600/30 rounded-full blur-md group-hover:bg-purple-500/40"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-purple-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <div class="absolute -inset-1 bg-green-200/40 rounded-full blur-md group-hover:bg-green-300/50"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-700 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
               </div>
-              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-purple-300 transition-colors">AI Assistant</h4>
-              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">24/7 intelligent virtual assistance with instant predictive responses.</p>
+              <h4 class="text-lg font-bold text-black mb-2 group-hover:text-gray-800 transition-colors">AI Assistant</h4>
+              <p class="text-black text-center group-hover:text-gray-800 transition-colors">24/7 intelligent virtual assistance with instant predictive responses.</p>
             </div>
-
-            <!-- New Component 1 -->
-            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-yellow-300/50 hover:shadow-yellow-500/20 transition-all duration-300 flex flex-col items-center">
+            <div class="group bg-green-50/80 backdrop-blur-lg border border-green-200 rounded-lg shadow-lg p-4 hover:border-green-400 hover:shadow-green-300 transition-all duration-300 flex flex-col items-center">
               <div class="relative mb-4">
-                <div class="absolute -inset-1 bg-yellow-600/30 rounded-full blur-md group-hover:bg-yellow-500/40"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-yellow-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
+                <div class="absolute -inset-1 bg-green-200/40 rounded-full blur-md group-hover:bg-green-300/50"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-700 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
-              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-yellow-300 transition-colors">Predictive Insights</h4>
-              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Forecast trends and make data-driven decisions.</p>
+              <h4 class="text-lg font-bold text-black mb-2 group-hover:text-gray-800 transition-colors">Predictive Insights</h4>
+              <p class="text-black text-center group-hover:text-gray-800 transition-colors">Forecast trends and make data-driven decisions.</p>
             </div>
-
-            <!-- New Component 2 -->
-            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-red-300/50 hover:shadow-red-500/20 transition-all duration-300 flex flex-col items-center">
+            <div class="group bg-green-50/80 backdrop-blur-lg border border-green-200 rounded-lg shadow-lg p-4 hover:border-green-400 hover:shadow-green-300 transition-all duration-300 flex flex-col items-center">
               <div class="relative mb-4">
-                <div class="absolute -inset-1 bg-red-600/30 rounded-full blur-md group-hover:bg-red-500/40"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-red-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
+                <div class="absolute -inset-1 bg-green-200/40 rounded-full blur-md group-hover:bg-green-300/50"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-700 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
               </div>
-              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-red-300 transition-colors">Automated Monitoring</h4>
-              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Track city metrics in real-time.</p>
+              <h4 class="text-lg font-bold text-black mb-2 group-hover:text-gray-800 transition-colors">Automated Monitoring</h4>
+              <p class="text-black text-center group-hover:text-gray-800 transition-colors">Track city metrics in real-time.</p>
             </div>
-
-            <!-- New Component 3 -->
-            <div class="group bg-transparent backdrop-blur-lg border border-white/10 rounded-lg shadow-lg p-4 hover:border-green-300/50 hover:shadow-green-500/20 transition-all duration-300 flex flex-col items-center">
+            <div class="group bg-green-50/80 backdrop-blur-lg border border-green-200 rounded-lg shadow-lg p-4 hover:border-green-400 hover:shadow-green-300 transition-all duration-300 flex flex-col items-center">
               <div class="relative mb-4">
-                <div class="absolute -inset-1 bg-green-600/30 rounded-full blur-md group-hover:bg-green-500/40"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
+                <div class="absolute -inset-1 bg-green-200/40 rounded-full blur-md group-hover:bg-green-300/50"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-700 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
-              <h4 class="text-lg font-bold text-white mb-2 group-hover:text-green-300 transition-colors">Enhanced Security</h4>
-              <p class="text-white/70 text-center group-hover:text-white/90 transition-colors">Detect and prevent security threats proactively.</p>
+              <h4 class="text-lg font-bold text-black mb-2 group-hover:text-gray-800 transition-colors">Enhanced Security</h4>
+              <p class="text-black text-center group-hover:text-gray-800 transition-colors">Detect and prevent security threats proactively.</p>
             </div>
           </div>
         </div>      </div>
@@ -159,7 +155,18 @@ import { ChangeDetectorRef } from '@angular/core';
             </div>
             <div class="mb-2">
               <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-              <input type="password" id="password" [(ngModel)]="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
+              <div class="relative">
+                <input [type]="showLoginPassword ? 'text' : 'password'" id="password" [(ngModel)]="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                <button type="button" (click)="showLoginPassword = !showLoginPassword" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                  <svg *ngIf="!showLoginPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <svg *ngIf="showLoginPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300">Login</button>
           </form>
@@ -216,7 +223,18 @@ import { ChangeDetectorRef } from '@angular/core';
               </div>
               <div class="mb-2">
                 <label for="signup-password" class="block text-sm font-medium text-gray-700">Password</label>
-                <input type="password" id="signup-password" [(ngModel)]="signupPassword" name="signupPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                <div class="relative">
+                  <input [type]="showSignupPassword ? 'text' : 'password'" id="signup-password" [(ngModel)]="signupPassword" name="signupPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                  <button type="button" (click)="showSignupPassword = !showSignupPassword" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                    <svg *ngIf="!showSignupPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <svg *ngIf="showSignupPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div class="mb-2">
                 <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
@@ -242,28 +260,6 @@ import { ChangeDetectorRef } from '@angular/core';
           </div>
         </div>
       </div>
-
-      <!-- Admin Signup Confirmation Modal -->
-      <div *ngIf="showAdminSignupModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-2xl w-80 max-w-[90vw] flex flex-col items-center p-6">
-          <!-- Profile -->
-          <div class="flex flex-col items-center mb-2">
-            <img src="assets/simba.png" alt="Developer" class="w-20 h-20 rounded-full object-cover mb-2 shadow" />
-            <div class="text-base font-bold text-gray-800">Simbarashe Matogo</div>
-            <div class="text-xs text-blue-600 font-semibold">Full Stack Developer</div>
-            <div class="text-xs text-gray-500">Final Year, Telone Centre for Learning</div>
-          </div>
-          <h3 class="text-lg font-bold text-blue-700 mb-2 text-center">You are signing up for an admin role</h3>
-          <p class="text-sm text-gray-700 text-center mb-2">Your details have been successfully registered.</p>
-          <p class="text-xs text-gray-500 text-center mb-4">You should now wait for approval and verification.<br>It will take up to <span class="font-bold text-blue-600">2 hours</span>.</p>
-          <div class="flex justify-center">
-            <svg class="animate-spin h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
     </div>
   `,
   styles: []
@@ -272,8 +268,9 @@ export class LandingPageComponent {
   showLoginModal = false;
   showSignUpModal = false;
   isSigningUp = false;
-  showAdminSignupModal = false;
-
+  showLoginPassword = false;
+  showSignupPassword = false;
+  
   // Login form fields
   email = '';
   password = '';
@@ -345,27 +342,17 @@ export class LandingPageComponent {
         this.role === 'departmentadmin' ? this.department : ''
       );
 
+      let message = 'Account Created Successfully!';
+      let detail = 'Please login with your new credentials.';
+      
       if (this.role === 'departmentadmin' || this.role === 'overalladmin') {
-        this.isSigningUp = false;
-        this.showSignUpModal = false;
-        this.showAdminSignupModal = true;
-        setTimeout(() => {
-          this.showAdminSignupModal = false;
-          this.openLoginModal();
-          this.cdr.detectChanges();
-        }, 1000); // Show for 1 second
-        return;
+        detail = 'Your account requires approval. Please wait for verification before logging in.';
       }
 
-      // For general users, show success and open login modal (no auto-login)
-      this.notificationService.showSuccess(
-        'Account Created Successfully!',
-        'Please login with your new credentials.',
-        5000
-      );
+      this.notificationService.showSuccess(message, detail, 5000);
       this.showSignUpModal = false;
       this.openLoginModal();
-      this.email = this.signupEmail;
+      
     } catch (error) {
       const firebaseError = error as FirebaseError;
       this.isSigningUp = false;
@@ -386,6 +373,8 @@ export class LandingPageComponent {
         this.notificationService.showError(this.signUpErrorMessage, 5000);
         return;
       }
+    } finally {
+      this.isSigningUp = false;
     }
   }
 }

@@ -36,14 +36,35 @@ import { Subscription } from 'rxjs';
 
         <!-- Chat Messages -->
         <div class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth" #chatContainer>
-          <div *ngFor="let message of messages; let last = last" class="flex" [ngClass]="message.sender === 'user' ? 'justify-end' : 'justify-start'">
-            <div class="max-w-[80%]" [ngClass]="message.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'">
-              <div class="rounded-lg px-4 py-2 shadow-sm">
-                <p class="text-sm leading-relaxed">{{ message.content }}</p>
-                <p class="text-xs mt-1 opacity-70" [ngClass]="message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'">
+          <div *ngFor="let message of messages; let last = last" class="flex w-full" [ngClass]="message.sender === 'user' ? 'justify-end' : 'justify-start'">
+            <div class="relative max-w-[80%] flex flex-col"
+                 [ngClass]="message.sender === 'user' ? 'items-end' : 'items-start'">
+              <div
+                [ngClass]="message.sender === 'user'
+                  ? 'bg-gradient-to-br from-green-400 to-green-600 text-white rounded-2xl rounded-br-sm'
+                  : 'bg-gray-100 text-gray-800 rounded-2xl rounded-bl-sm'"
+                class="px-4 py-2 shadow-sm text-sm leading-relaxed"
+                style="border-bottom-right-radius: 0.5rem; border-bottom-left-radius: 0.5rem;"
+              >
+                <span>{{ message.content }}</span>
+                <span class="block text-xs mt-1 opacity-70 text-right"
+                      [ngClass]="message.sender === 'user' ? 'text-green-100' : 'text-gray-500'">
                   {{ message.timestamp | date:'shortTime' }}
-                </p>
+                </span>
               </div>
+              <!-- Bubble tail -->
+              <svg *ngIf="message.sender === 'user'" class="absolute right-0 -bottom-2" width="20" height="10" viewBox="0 0 20 10">
+                <path d="M0,0 Q10,10 20,0" fill="url(#userTailGradient)" />
+                <defs>
+                  <linearGradient id="userTailGradient" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#4ade80" />
+                    <stop offset="100%" stop-color="#16a34a" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <svg *ngIf="message.sender !== 'user'" class="absolute left-0 -bottom-2" width="20" height="10" viewBox="0 0 20 10">
+                <path d="M20,0 Q10,10 0,0" fill="#f3f4f6" />
+              </svg>
             </div>
           </div>
 

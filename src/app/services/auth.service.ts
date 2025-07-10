@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User, browserLocalPersistence, setPersistence } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User, browserLocalPersistence, setPersistence, deleteUser as firebaseDeleteUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { environment } from '../../environments/environment';
 import { Router } from '@angular/router';
@@ -22,6 +22,13 @@ export interface UserData {
   surname?: string;      // User's last name (optional)
   department?: string;   // User's assigned department (optional)
   lastLogin?: Date;      // Timestamp of last login (optional)
+  isApproved?: boolean;  // Whether the admin account is approved (required for admin roles)
+  approvalStatus?: {     // Approval status information
+    isApproved: boolean;
+    approvedBy?: string; // UID of the admin who approved/revoked
+    approvedAt?: Date;   // When the approval/revocation happened
+    notes?: string;      // Notes about the approval/revocation decision
+  };
 }
 
 /**
@@ -140,7 +147,8 @@ export class AuthService {
               role: 'generaluser', // Default role for existing auth users
               name: user.displayName || '',
               surname: '',
-              department: ''
+              department: '',
+              isApproved: false // Default for new users
             };
             
             await this.saveUserData(newUserData);
@@ -239,23 +247,70 @@ export class AuthService {
    */
   async login(email: string, password: string): Promise<void> {
     try {
-      this.isLoadingSubject.next(true);
-      const startTime = Date.now();
-      
+      // Attempt to sign in with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
+      const user = userCredential.user;
+
+      // Get user data from Firestore
+      const userData = await this.getUserData(user.uid);
       
-      // Ensure minimum loading time of 3 seconds for better UX
-      const elapsedTime = Date.now() - startTime;
-      const minLoadingTime = 3000; // 3 seconds
+      if (!userData) {
+        await signOut(this.auth);
+        throw new Error('User data not found');
+      }
+
+      // Check if admin account requires approval
+      if (userData.role === 'departmentadmin' || (userData.role === 'overalladmin' && userData.approvalStatus !== undefined)) {
+        if (!userData.approvalStatus?.isApproved) {
+          // Sign out the user immediately
+          await signOut(this.auth);
+          throw new Error('Your admin account is pending approval. Please wait for verification before logging in.');
+        }
+      }
+
+      // If this is the first overall admin (no approvalStatus), set them as approved
+      if (userData.role === 'overalladmin' && userData.approvalStatus === undefined) {
+        await this.firebaseService.updateDocument('users', user.uid, {
+          approvalStatus: {
+            isApproved: true,
+            approvedBy: 'system',
+            approvedAt: new Date(),
+            notes: 'First overall admin account - automatically approved'
+          }
+        });
+      }
+
+      // Update last login time
+      await this.updateLastLogin(user.uid);
       
-      if (elapsedTime < minLoadingTime) {
-        await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsedTime));
+      // Update state
+      this.currentUserSubject.next(userData);
+      this.isAuthenticatedSubject.next(true);
+      
+      // Navigate based on role
+      this.navigateBasedOnRole(userData.role);
+
+    } catch (error) {
+      console.error('Login error:', error);
+      
+      // Handle specific error for unapproved admin accounts
+      if (error instanceof Error && error.message.includes('pending approval')) {
+        throw error;
       }
       
-      // The auth state listener will handle navigation
-    } catch (error) {
-      this.isLoadingSubject.next(false);
-      console.error('Login failed:', error);
+      // Handle other Firebase errors
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+            throw new Error('Invalid email or password');
+          case 'auth/too-many-requests':
+            throw new Error('Too many failed login attempts. Please try again later');
+          default:
+            throw new Error('An error occurred during login. Please try again');
+        }
+      }
+      
       throw error;
     }
   }
@@ -289,7 +344,8 @@ export class AuthService {
         role: role.toLowerCase(),
         name: name || '',
         surname: surname || '',
-        department: department || ''
+        department: department || '',
+        isApproved: false // Default for new users
       };
 
       await this.saveUserData(userData);
@@ -347,13 +403,23 @@ export class AuthService {
         role: role.toLowerCase(),
         name: name || '',
         surname: surname || '',
-        department: department || ''
+        department: department || '',
+        approvalStatus: {
+          isApproved: role === 'generaluser', // Only general users are auto-approved
+          approvedBy: role === 'generaluser' ? 'system' : undefined,
+          approvedAt: role === 'generaluser' ? new Date() : undefined,
+          notes: role === 'generaluser' ? 'Auto-approved general user account' : ''
+        }
       };
 
       await this.saveUserData(userData);
       
       // Sign out immediately to prevent auto-login
       await signOut(this.auth);
+      
+      // Clear any existing auth state
+      this.currentUserSubject.next(null);
+      this.isAuthenticatedSubject.next(false);
       
       console.log(`User account created successfully for ${email} with role ${role}`);
     } catch (error) {
@@ -395,7 +461,12 @@ export class AuthService {
    */
   private async getUserData(uid: string): Promise<UserData | null> {
     try {
-      const userDoc: any = await this.firebaseService.getDocument('users', uid);
+      if (!uid) {
+        console.error('Invalid UID provided to getUserData');
+        return null;
+      }
+      
+      const userDoc = await this.firebaseService.getDocument('users', uid);
       if (userDoc) {
         // Check if user is marked as deleted
         if (userDoc.status === 'deleted') {
@@ -404,12 +475,15 @@ export class AuthService {
         }
         
         return {
-          uid: userDoc.id,
+          uid: userDoc.id || uid,
           email: userDoc.email,
           role: userDoc.role,
           name: userDoc.name || '',
           surname: userDoc.surname || '',
-          department: userDoc.department || ''
+          department: userDoc.department || '',
+          lastLogin: userDoc.lastLogin ? new Date(userDoc.lastLogin) : undefined,
+          isApproved: userDoc.isApproved || false,
+          approvalStatus: userDoc.approvalStatus || undefined
         };
       }
       return null;
@@ -444,7 +518,9 @@ export class AuthService {
           email: true,
           app: true
         },
-        profileComplete: false
+        profileComplete: false,
+        isApproved: userData.isApproved || false,
+        approvalStatus: userData.approvalStatus || undefined
       });
       console.log(`User data saved successfully for uid: ${userData.uid}`);
     } catch (error) {
@@ -618,6 +694,155 @@ export class AuthService {
       console.log(`Deleted user document from Firestore for uid: ${uid}`);
     } catch (error) {
       console.error('Error deleting user document:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Completely delete a user from Firestore and Firebase Auth
+   * @param uid - Firebase Auth user ID
+   */
+  async deleteUserEverywhere(uid: string): Promise<void> {
+    try {
+      // Delete from Firestore
+      const db = this.firebaseService.getDb();
+      await deleteDoc(doc(db, 'users', uid));
+      console.log(`Deleted user document from Firestore for uid: ${uid}`);
+
+      // Try to delete from Firebase Auth (only works if current user is the user)
+      const currentUser = this.auth.currentUser;
+      if (currentUser && currentUser.uid === uid) {
+        await firebaseDeleteUser(currentUser);
+        console.log(`Deleted user from Firebase Auth for uid: ${uid}`);
+      }
+    } catch (error) {
+      console.error('Error deleting user everywhere:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Approve an admin account
+   * 
+   * Only overall admins can approve other admin accounts.
+   * This sets the isApproved flag to true in Firestore.
+   * 
+   * @param adminUid - The UID of the admin account to approve
+   * @param notes - Optional notes about the approval decision
+   * @throws Error - If the current user is not an overall admin or if the target user is not found
+   */
+  async approveAdminAccount(adminUid: string, notes?: string): Promise<void> {
+    try {
+      if (!adminUid) {
+        throw new Error('Invalid admin ID provided');
+      }
+
+      // Get current user data
+      const currentUser = this.getCurrentUserData();
+      if (!currentUser || currentUser.role !== 'overalladmin') {
+        throw new Error('Only overall admins can approve other admin accounts');
+      }
+
+      // Get the target admin's data
+      const adminData = await this.getUserData(adminUid);
+      if (!adminData) {
+        throw new Error('Admin account not found');
+      }
+
+      // Verify this is an admin account
+      if (adminData.role !== 'departmentadmin' && adminData.role !== 'overalladmin') {
+        throw new Error('This account is not an admin account');
+      }
+
+      // Update the approval status
+      await this.firebaseService.updateDocument('users', adminUid, {
+        approvalStatus: {
+          isApproved: true,
+          approvedBy: currentUser.uid,
+          approvedAt: new Date(),
+          notes: notes || 'Approved by overall admin'
+        }
+      });
+
+      console.log(`Admin account ${adminUid} approved successfully`);
+    } catch (error) {
+      console.error('Error approving admin account:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Revoke an admin account's approval
+   * 
+   * Only overall admins can revoke admin approvals.
+   * This sets the isApproved flag to false in Firestore.
+   * 
+   * @param adminUid - The UID of the admin account to revoke
+   * @param notes - Optional notes about the revocation decision
+   * @throws Error - If the current user is not an overall admin or if the target user is not found
+   */
+  async revokeAdminApproval(adminUid: string, notes?: string): Promise<void> {
+    try {
+      // Get current user data
+      const currentUser = this.getCurrentUserData();
+      if (!currentUser || currentUser.role !== 'overalladmin') {
+        throw new Error('Only overall admins can revoke admin approvals');
+      }
+
+      // Get the target admin's data
+      const adminData = await this.getUserData(adminUid);
+      if (!adminData) {
+        throw new Error('Admin account not found');
+      }
+
+      // Verify this is an admin account
+      if (adminData.role !== 'departmentadmin' && adminData.role !== 'overalladmin') {
+        throw new Error('This account is not an admin account');
+      }
+
+      // Update the approval status
+      await this.firebaseService.updateDocument('users', adminUid, {
+        approvalStatus: {
+          isApproved: false,
+          approvedBy: currentUser.uid,
+          approvedAt: new Date(),
+          notes: notes || ''
+        }
+      });
+
+      console.log(`Admin account ${adminUid} approval revoked successfully`);
+    } catch (error) {
+      console.error('Error revoking admin approval:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all admin accounts that need approval
+   * 
+   * Only overall admins can view pending approvals.
+   * Returns a list of admin accounts that haven't been approved yet.
+   * 
+   * @returns Promise<UserData[]> - List of pending admin accounts
+   * @throws Error - If the current user is not an overall admin
+   */
+  async getPendingAdminApprovals(): Promise<UserData[]> {
+    try {
+      // Get current user data
+      const currentUser = this.getCurrentUserData();
+      if (!currentUser || currentUser.role !== 'overalladmin') {
+        throw new Error('Only overall admins can view pending approvals');
+      }
+
+      // Query Firestore for pending admin accounts
+      const pendingAdmins = await this.firebaseService.getCollection('users', [
+        { field: 'role', operator: 'in', value: ['departmentadmin', 'overalladmin'] },
+        { field: 'approvalStatus.isApproved', operator: '==', value: false }
+      ]);
+
+      return pendingAdmins as UserData[];
+    } catch (error) {
+      console.error('Error getting pending admin approvals:', error);
       throw error;
     }
   }

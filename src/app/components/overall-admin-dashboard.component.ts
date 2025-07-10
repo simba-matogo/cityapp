@@ -16,12 +16,20 @@ import { Announcement } from '../models/announcement.model';
 import { AiPoweredFeaturesComponent } from './ai-powered-features.component';
 import { AiChatComponent } from './ai-chat.component';
 import { NotificationContainerComponent } from './notification-container.component';
+import { UserApprovalModalComponent } from './user-approval-modal.component';
 
 
 @Component({
   selector: 'app-overall-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, AiPoweredFeaturesComponent, AiChatComponent, NotificationContainerComponent],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    AiPoweredFeaturesComponent, 
+    AiChatComponent, 
+    NotificationContainerComponent,
+    UserApprovalModalComponent
+  ],
   providers: [NotificationService],
   template: `
     <div class="min-h-screen flex flex-col" [class]="isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-100 to-blue-50'">
@@ -304,71 +312,79 @@ import { NotificationContainerComponent } from './notification-container.compone
       </div>
     </div>
 
-    <div *ngIf="showViewUsersModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-lg flex flex-col items-center mx-4 sm:mx-8" style="max-height:80vh; overflow-y:auto;">
-        <div class="flex flex-col md:flex-row items-center md:justify-center w-full mb-3">
-          <span class="relative inline-block mb-1 md:mb-0 md:mr-3">
-            <!-- Blue User/Group Icon -->
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="8" r="4" fill="#dbeafe" stroke="#2563eb"/>
-              <path d="M6 20c0-2.21 3.58-4 6-4s6 1.79 6 4" stroke="#2563eb" stroke-width="2"/>
+    <div *ngIf="showViewUsersModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-[95%] max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold text-gray-900">Manage Users</h2>
+          <button (click)="closeViewUsersModal()" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
-          </span>
-          <h3 class="text-lg md:text-xl font-extrabold text-blue-700 tracking-wide drop-shadow-md text-center whitespace-nowrap md:ml-2">Active Users ({{totalUsersCount}})</h3>
+          </button>
         </div>
-        <div class="w-full text-sm">
-          <div class="grid grid-cols-5 font-bold border-b border-slate-200 pb-2 mb-2 text-slate-800">
-            <div>Name</div>
-            <div>Surname</div>
-            <div>Email</div>
-            <div>Role</div>
-            <div>Actions</div>
-          </div>
-          <ng-container *ngIf="users && users.length > 0">
-            <ng-container *ngFor="let user of (viewAllUsers ? users : users.slice(0, 5))">
-              <div class="grid grid-cols-5 items-center border-b border-slate-200 py-2 text-slate-700">
-                <div>{{ user.name || 'N/A' }}</div>
-                <div>{{ user.surname || 'N/A' }}</div>
-                <div>{{ user.email || 'N/A' }}</div>
-                <div>
-                  <span [ngClass]="{
-                    'bg-blue-100 text-blue-800': user.role === 'overalladmin',
-                    'bg-green-100 text-green-800': user.role === 'departmentadmin',
-                    'bg-purple-100 text-purple-800': user.role === 'generaluser'
-                  }" class="px-2 py-1 rounded-full text-xs">
-                    {{ user.role === 'overalladmin' ? 'Overall Admin' : 
-                       user.role === 'departmentadmin' ? 'Dept Admin' : 
-                       user.role === 'generaluser' ? 'General User' : 
-                       'Unknown' }}
+        <!-- Users Table -->
+        <div class="overflow-x-auto flex-1">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let user of users">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {{user.name}} {{user.surname}}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {{user.email}}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
+                  {{user.role}}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {{user.department || '-'}}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span *ngIf="user.role !== 'generaluser'" 
+                        [class]="user.approvalStatus?.isApproved ? 
+                          'px-2 py-1 text-xs rounded-full bg-green-100 text-green-800' : 
+                          'px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800'">
+                    {{user.approvalStatus?.isApproved ? 'Approved' : 'Pending'}}
                   </span>
-                  <span *ngIf="user.approved === false" class="ml-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-[10px] font-bold">Pending</span>
-                  <button *ngIf="user.approved === false && (user.role === 'departmentadmin' || user.role === 'overalladmin')"
-                          (click)="approveUser(user)"
-                          class="ml-2 px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 transition">Approve</button>
-                </div>
-                <div class="flex items-center justify-between">
-                  <button *ngIf="user.approved === false && (user.role === 'departmentadmin' || user.role === 'overalladmin')"
-                          (click)="approveUser(user)"
-                          class="px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 transition">Approve</button>
-                  <button (click)="deleteUser(user.id)" class="ml-2 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300">
-                    <svg xmlns='http://www.w3.org/2000/svg' class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'>
-                      <path stroke-linecap='round' stroke-linejoin='round' d='M6 18L18 6M6 6l12 12'/>
-                    </svg>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div class="flex gap-2">
+                    <button *ngIf="user.role !== 'generaluser'"
+                            (click)="openApprovalModal(user)"
+                            class="text-blue-600 hover:text-blue-900 text-xs">
+                      {{user.approvalStatus?.isApproved ? 'Manage Access' : 'Review'}}
+                    </button>
+                    <button (click)="deleteUser(user.id)"
+                            class="text-red-600 hover:text-red-900 text-xs">
+                      Delete
                   </button>
                 </div>
-              </div>
-            </ng-container>
-          </ng-container>
-          <div class="flex justify-center mt-2" *ngIf="users && users.length > 5">
-            <button *ngIf="!viewAllUsers" (click)="viewAllUsers = true" class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded text-xs font-semibold">View All</button>
-            <button *ngIf="viewAllUsers" (click)="viewAllUsers = false" class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded text-xs font-semibold">View Less</button>
-          </div>
-        </div>
-        <div class="flex justify-center mt-4">
-          <button (click)="closeViewUsersModal()" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition">Close</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
+
+    <!-- User Approval Modal -->
+    <app-user-approval-modal
+      *ngIf="showApprovalModal"
+      [user]="selectedUser"
+      (approve)="approveUser($event)"
+      (revoke)="revokeUserApproval($event)"
+      (close)="closeApprovalModal()"
+    ></app-user-approval-modal>
 
     <div *ngIf="showAddDepartmentModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
       <div class="bg-white p-6 rounded-lg shadow-2xl w-[95vw] max-w-4xl flex flex-col items-center" style="max-height:90vh; overflow-y:auto;">
@@ -939,6 +955,8 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
   // Add state variables to the class:
   deletingUser: boolean = false;
   deleteUserSuccess: boolean = false;
+  showApprovalModal = false;
+  selectedUser: any = null;
   constructor(
     @Inject(NotificationService) private notificationService: NotificationService,
     private authService: AuthService,
@@ -965,12 +983,17 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
       
       // Subscribe to real-time users data
       this.userService.getUsers().subscribe((users: any[]) => {
-        this.users = users;
+        // Ensure every user has a uid property for consistency
+        this.users = users.map(user => ({
+          ...user,
+          uid: user.uid || user.id // prefer uid, fallback to id
+        }));
         // Filter department admins with better data handling
-        this.admins = users
+        this.admins = this.users
           .filter(user => user.role === 'departmentadmin')
           .map(user => ({
             id: user.id,
+            uid: user.uid || user.id,
             name: `${user.name || ''} ${user.surname || ''}`.trim() || user.email || 'Unknown',
             department: user.department || 'Unassigned',
             email: user.email
@@ -1149,32 +1172,12 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
       try {
         this.deletingUser = true;
         this.deleteUserSuccess = false;
-        // Check if user is trying to delete themselves
-        const currentUser = this.authService.getCurrentUserData();
-        if (currentUser && currentUser.uid === this.userToDelete.id) {
-          this.notificationService.showError('You cannot delete your own account.');
-          this.deletingUser = false;
-          this.showDeleteUserModal = false;
-          this.userToDelete = null;
-          return;
-        }
-
-        // Check if user is an overall admin (prevent deletion of overall admins)
-        if (this.userToDelete.role === 'overalladmin') {
-          this.notificationService.showError("Due to security reasons, Overall Admins can only be deleted directly from Firebase (the backend).", 4000);
-          this.deletingUser = false;
-          this.showDeleteUserModal = false;
-          this.userToDelete = null;
-          return;
-        }
-
-        // Mark user as deleted in Firestore (this will remove them from the UI)
-        await this.authService.markUserAsDeleted(this.userToDelete.id);
-        // Log the user deletion
+        // Use the new method to delete from Firestore and Auth
+        await this.authService.deleteUserEverywhere(this.userToDelete.uid);
         this.activityService.logActivity(
           'delete_user',
           `User "${this.userToDelete.name} ${this.userToDelete.surname}" (${this.userToDelete.email}) deleted`,
-          this.userToDelete.id
+          this.userToDelete.uid
         );
         this.notificationService.showSuccess(`User "${this.userToDelete.name} ${this.userToDelete.surname}" deleted successfully!`);
         this.deletingUser = false;
@@ -1245,7 +1248,11 @@ export class OverallAdminDashboardComponent implements OnInit, OnDestroy {
     
     // Use UserService to get all users
     this.userService.users$.subscribe((allUsers: any[]) => {
-      this.users = allUsers;
+      // Ensure every user has a uid property for consistency
+      this.users = allUsers.map(user => ({
+        ...user,
+        uid: user.uid || user.id // prefer uid, fallback to id
+      }));
       this.cdr.detectChanges();
     });
   }
@@ -1914,14 +1921,41 @@ ${'='.repeat(50)}
     }
   }
 
-  async approveUser(user: any) {
+  openApprovalModal(user: any) {
+    this.selectedUser = user;
+    this.showApprovalModal = true;
+  }
+
+  closeApprovalModal() {
+    this.showApprovalModal = false;
+    this.selectedUser = null;
+  }
+
+  async approveUser(event: { uid: string, notes: string }) {
     try {
-      await this.userService.updateUser(user.id, { approved: true });
-      user.approved = true;
-      this.notificationService.show('User approved successfully.', 'success');
-      this.cdr.detectChanges();
+      if (!event.uid) {
+        this.notificationService.showError('Invalid user ID');
+        return;
+      }
+      await this.authService.approveAdminAccount(event.uid, event.notes);
+      this.notificationService.showSuccess('User approved successfully');
+      this.closeApprovalModal();
+      await this.refreshAdminData(); // Refresh the users list
     } catch (error) {
-      this.notificationService.show('Failed to approve user.', 'error');
+      console.error('Error approving user:', error);
+      this.notificationService.showError(error instanceof Error ? error.message : 'An unknown error occurred');
+    }
+  }
+
+  async revokeUserApproval(event: { uid: string, notes: string }) {
+    try {
+      await this.authService.revokeAdminApproval(event.uid, event.notes);
+      this.notificationService.showSuccess('User approval revoked', 'The admin account access has been revoked.');
+      this.closeApprovalModal();
+      await this.refreshAdminData(); // Refresh the users list
+    } catch (error) {
+      console.error('Error revoking user approval:', error);
+      this.notificationService.showError('Error revoking approval', error instanceof Error ? error.message : 'An unknown error occurred');
     }
   }
 }
